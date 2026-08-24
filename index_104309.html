@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EPUB Chapter Splitter — แยกบทจาก Heading 1</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; line-height: 1.6; color: #222; }
+  h1 { font-size: 1.4em; }
+  .box { border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-top: 20px; }
+  input[type=file] { display: block; margin: 12px 0; }
+  button { background: #2563eb; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 1em; cursor: pointer; }
+  button:disabled { background: #9ca3af; cursor: not-allowed; }
+  #log { white-space: pre-wrap; font-family: monospace; font-size: 0.85em; background: #f6f6f6; border-radius: 8px; padding: 12px; margin-top: 16px; max-height: 260px; overflow-y: auto; }
+  #downloadArea { margin-top: 16px; }
+  a.dl { display: inline-block; background: #16a34a; color: #fff; padding: 10px 18px; border-radius: 8px; text-decoration: none; }
+  .note { font-size: 0.85em; color: #666; }
+</style>
+</head>
+<body>
+
+<h1>EPUB Chapter Splitter</h1>
+<p>เครื่องมือนี้แก้ปัญหา epub ที่ export จาก Google Docs ซึ่งมักรวมทุกบทไว้ในไฟล์ XHTML เดียว (แบ่งด้วย Heading 1) ทำให้รีดเดอร์บางตัวจับ "chapter ที่กำลังอ่าน" ไม่ได้ แม้รายการ chapter จะยังเลือกได้ปกติ</p>
+<p>เครื่องมือจะแยกแต่ละ <code>&lt;h1&gt;</code> ออกเป็นไฟล์ XHTML คนละไฟล์ แล้วสร้าง TOC/NCX/nav ใหม่ให้ชี้ไปแต่ละไฟล์ ทำงานทั้งหมดในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์ไปที่เซิร์ฟเวอร์ใด ๆ</p>
+
+<div class="box">
+  <label for="fileInput"><strong>เลือกไฟล์ .epub</strong></label>
+  <input type="file" id="fileInput" accept=".epub">
+  <button id="processBtn" disabled>แยก chapter</button>
+  <div id="log"></div>
+  <div id="downloadArea"></div>
+</div>
+
+<p class="note">หมายเหตุ: เครื่องมือค้นหา <code>&lt;h1&gt;</code> ในแต่ละไฟล์เนื้อหาของ epub ถ้าไฟล์ไหนมี h1 ตั้งแต่ 2 อันขึ้นไปจะถูกแยก ไฟล์ที่มี h1 อันเดียวหรือไม่มีเลยจะถูกปล่อยไว้เหมือนเดิม (แต่ยังถูกใส่ชื่อใน TOC ให้ถ้ามี h1)</p>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const processBtn = document.getElementById('processBtn');
+const logEl = document.getElementById('log');
+const downloadArea = document.getElementById('downloadArea');
+let selectedFile = null;
+
+fileInput.addEventListener('change', () => {
+  selectedFile = fileInput.files[0] || null;
+  processBtn.disabled = !selectedFile;
+  logEl.textContent = '';
+  downloadArea.innerHTML = '';
+});
+
+function log(msg) {
+  logEl.textContent += msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+processBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  processBtn.disabled = true;
+  logEl.textContent = '';
+  downloadArea.innerHTML = '';
+  try {
+    await processEpub(selectedFile);
+  } catch (err) {
+    log('เกิดข้อผิดพลาด: ' + err.message);
+    console.error(err);
+  }
+  processBtn.disabled = false;
+});
+
+async function processEpub(file) {
+  log('กำลังเปิดไฟล์ epub...');
+  const zip = await JSZip.loadAsync(file);
+  const parser = new DOMParser();
+  const serializer = new XMLSerializer();
+
+  // 1. container.xml -> opf path
+  const containerFile = zip.file('META-INF/container.xml');
+  if (!containerFile) throw new Error('ไม่พบ META-INF/container.xml ไฟล์นี้อาจไม่ใช่ epub ที่ถูกต้อง');
+  const containerXml = await containerFile.async('string');
+  const containerDoc = parser.parseFromString(containerXml, 'application/xml');
+  const rootfileEl = containerDoc.querySelector('rootfile');
+  const opfPath = rootfileEl.getAttribute('full-path');
+  const opfDir = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : '';
+  log('พบ content.opf ที่: ' + opfPath);
+
+  const opfFile = zip.file(opfPath);
+  const opfText = await opfFile.async('string');
+  const opfDoc = parser.parseFromString(opfText, 'application/xml');
+
+  const manifestEl = opfDoc.querySelector('manifest');
+  const spineEl = opfDoc.querySelector('spine');
+  if (!manifestEl || !spineEl) throw new Error('content.opf ไม่มี manifest หรือ spine ที่ถูกต้อง');
+
+  const manifestMap = {};
+  manifestEl.querySelectorAll('item').forEach(it => {
+    manifestMap[it.getAttribute('id')] = {
+      id: it.getAttribute('id'),
+      href: it.getAttribute('href'),
+      mediaType: it.getAttribute('media-type'),
+      properties: it.getAttribute('properties') || ''
+    };
+  });
+
+  const originalSpineOrder = Array.from(spineEl.querySelectorAll('itemref')).map(ir => ir.getAttribute('idref'));
+  const newSpineOrder = [];
+  const tocEntries = []; // {href, title} in final reading order
+
+  let splitFilesCreated = 0;
+
+  for (const idref of originalSpineOrder) {
+    const item = manifestMap[idref];
+    if (!item) { continue; }
+    const isHtml = item.mediaType === 'application/xhtml+xml' || item.mediaType === 'text/html';
+    if (!isHtml) {
+      newSpineOrder.push(item.id);
+      continue;
+    }
+
+    const fullHref = opfDir + item.href;
+    const contentFile = zip.file(fullHref);
+    if (!contentFile) { newSpineOrder.push(item.id); continue; }
+
+    const htmlText = await contentFile.async('string');
+    let htmlDoc;
+    try {
+      htmlDoc = parser.parseFromString(htmlText, 'application/xhtml+xml');
+      if (htmlDoc.querySelector('parsererror')) throw new Error('xml parse error');
+    } catch (e) {
+      htmlDoc = parser.parseFromString(htmlText, 'text/html');
+    }
+
+    const bodyEl = htmlDoc.body || htmlDoc.querySelector('body');
+    const h1s = bodyEl ? Array.from(bodyEl.querySelectorAll('h1')) : [];
+
+    if (h1s.length < 2) {
+      // nothing meaningful to split
+      newSpineOrder.push(item.id);
+      let title = h1s.length === 1 ? h1s[0].textContent.trim() : null;
+      if (!title) {
+        const titleTag = htmlDoc.querySelector('title');
+        title = titleTag ? titleTag.textContent.trim() : item.href;
+      }
+      tocEntries.push({ href: item.href, title });
+      continue;
+    }
+
+    log('กำลังแยกไฟล์ ' + item.href + ' — พบ ' + h1s.length + ' หัวข้อ (Heading 1)');
+
+    // group body children into segments starting at each h1
+    const children = Array.from(bodyEl.children);
+    const segments = [];
+    let current = null;
+    for (const node of children) {
+      if (node.tagName && node.tagName.toLowerCase() === 'h1') {
+        current = { title: node.textContent.trim(), nodes: [node] };
+        segments.push(current);
+      } else {
+        if (!current) { current = { title: null, nodes: [] }; segments.push(current); }
+        current.nodes.push(node);
+      }
+    }
+    // merge any preface (content before first h1) into the first real segment
+    if (segments.length && segments[0].title === null) {
+      const preface = segments.shift();
+      if (segments.length) {
+        segments[0].nodes = preface.nodes.concat(segments[0].nodes);
+      } else {
+        segments.push(preface);
+      }
+    }
+
+    const htmlEl = htmlDoc.documentElement;
+    const htmlAttrs = Array.from(htmlEl.attributes).map(a => `${a.name}="${a.value}"`).join(' ');
+    const headStr = htmlDoc.head ? serializer.serializeToString(htmlDoc.head) : '<head><meta charset="utf-8"/></head>';
+
+    const contentDir = fullHref.includes('/') ? fullHref.substring(0, fullHref.lastIndexOf('/') + 1) : '';
+    const relDir = contentDir.substring(opfDir.length);
+    const rawName = item.href.split('/').pop();
+    const baseNameNoExt = rawName.replace(/\.[^.]+$/, '');
+    const ext = (rawName.match(/\.[^.]+$/) || ['.xhtml'])[0];
+
+    segments.forEach((seg, idx) => {
+      const newId = item.id + '_p' + (idx + 1);
+      const newFileName = baseNameNoExt + '-part' + (idx + 1) + ext;
+      const newHref = relDir + newFileName;
+      const fullNewPath = opfDir + newHref;
+
+      const bodyContent = seg.nodes.map(n => serializer.serializeToString(n)).join('\n');
+      const newXhtml = '<?xml version="1.0" encoding="utf-8"?>\n' +
+        '<html ' + htmlAttrs + '>\n' + headStr + '\n<body>\n' + bodyContent + '\n</body>\n</html>';
+
+      zip.file(fullNewPath, newXhtml);
+      manifestMap[newId] = { id: newId, href: newHref, mediaType: 'application/xhtml+xml', properties: '' };
+      newSpineOrder.push(newId);
+      tocEntries.push({ href: newHref, title: seg.title || ('บทที่ ' + (idx + 1)) });
+      splitFilesCreated++;
+    });
+
+    delete manifestMap[item.id];
+    zip.remove(fullHref);
+  }
+
+  log('สร้างไฟล์บทใหม่ทั้งหมด ' + splitFilesCreated + ' ไฟล์');
+
+  // rebuild manifest in opf
+  Array.from(manifestEl.querySelectorAll('item')).forEach(n => n.remove());
+  Object.values(manifestMap).forEach(it => {
+    const el = opfDoc.createElement('item');
+    el.setAttribute('id', it.id);
+    el.setAttribute('href', it.href);
+    el.setAttribute('media-type', it.mediaType);
+    if (it.properties) el.setAttribute('properties', it.properties);
+    manifestEl.appendChild(el);
+  });
+
+  // rebuild spine
+  Array.from(spineEl.querySelectorAll('itemref')).forEach(n => n.remove());
+  newSpineOrder.forEach(id => {
+    const el = opfDoc.createElement('itemref');
+    el.setAttribute('idref', id);
+    spineEl.appendChild(el);
+  });
+
+  const newOpfText = serializer.serializeToString(opfDoc);
+  zip.file(opfPath, newOpfText);
+  log('อัปเดต content.opf เรียบร้อย');
+
+  // regenerate NCX if present
+  const ncxItem = Object.values(manifestMap).find(it => it.mediaType === 'application/x-dtbncx+xml');
+  if (ncxItem) {
+    const ncxPath = opfDir + ncxItem.href;
+    let bookTitle = 'Untitled';
+    const titleEl = opfDoc.querySelector('metadata > *[*|title], metadata title');
+    if (titleEl) bookTitle = titleEl.textContent.trim();
+    let navPoints = '';
+    tocEntries.forEach((entry, i) => {
+      navPoints += `<navPoint id="navpoint-${i + 1}" playOrder="${i + 1}"><navLabel><text>${escapeXml(entry.title)}</text></navLabel><content src="${escapeXml(entry.href)}"/></navPoint>\n`;
+    });
+    const ncxText = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+      '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n' +
+      '<head><meta name="dtb:uid" content="split-epub"/></head>\n' +
+      `<docTitle><text>${escapeXml(bookTitle)}</text></docTitle>\n` +
+      '<navMap>\n' + navPoints + '</navMap>\n</ncx>';
+    zip.file(ncxPath, ncxText);
+    log('อัปเดต toc.ncx เรียบร้อย (' + tocEntries.length + ' รายการ)');
+  }
+
+  // regenerate EPUB3 nav if present
+  const navItem = Object.values(manifestMap).find(it => it.properties && it.properties.includes('nav'));
+  if (navItem) {
+    const navPath = opfDir + navItem.href;
+    let items = '';
+    tocEntries.forEach(entry => {
+      items += `<li><a href="${escapeXml(entry.href)}">${escapeXml(entry.title)}</a></li>\n`;
+    });
+    const navText = '<?xml version="1.0" encoding="utf-8"?>\n' +
+      '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">\n' +
+      '<head><meta charset="utf-8"/><title>Table of Contents</title></head>\n' +
+      '<body><nav epub:type="toc" id="toc"><ol>\n' + items + '</ol></nav></body></html>';
+    zip.file(navPath, navText);
+    log('อัปเดต nav.xhtml เรียบร้อย');
+  }
+
+  log('กำลังบีบอัดไฟล์ epub ใหม่...');
+  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
+  const url = URL.createObjectURL(blob);
+  const outName = selectedFile.name.replace(/\.epub$/i, '') + '-split.epub';
+  downloadArea.innerHTML = `<a class="dl" href="${url}" download="${outName}">ดาวน์โหลด ${outName}</a>`;
+  log('เสร็จแล้ว! กดปุ่มด้านล่างเพื่อดาวน์โหลด');
+}
+
+function escapeXml(str) {
+  return String(str).replace(/[<>&'"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+}
+</script>
+
+</body>
+</html>
