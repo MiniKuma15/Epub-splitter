@@ -3,14 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EPUB Chapter Splitter — แยกบทจาก Heading 1</title>
+<title>EPUB Toolkit — แยกบท / แก้ตัวหนา-เอียง / เปลี่ยนปก</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   body { font-family: -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; line-height: 1.6; color: #222; }
   h1 { font-size: 1.4em; }
   .box { border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-top: 20px; }
-  input[type=file] { display: block; margin: 12px 0; }
-  button { background: #2563eb; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 1em; cursor: pointer; }
+  .opt { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; }
+  .opt input[type=checkbox] { margin-top: 4px; width: 18px; height: 18px; }
+  .opt label { font-weight: 600; }
+  .opt .desc { font-size: 0.85em; color: #666; font-weight: normal; margin-top: 2px; }
+  input[type=file] { display: block; margin: 10px 0; }
+  button { background: #2563eb; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 1em; cursor: pointer; margin-top: 8px; }
   button:disabled { background: #9ca3af; cursor: not-allowed; }
   #log { white-space: pre-wrap; font-family: monospace; font-size: 0.85em; background: #f6f6f6; border-radius: 8px; padding: 12px; margin-top: 16px; max-height: 260px; overflow-y: auto; }
   #downloadArea { margin-top: 16px; }
@@ -20,22 +24,49 @@
 </head>
 <body>
 
-<h1>EPUB Chapter Splitter</h1>
-<p>เครื่องมือนี้แก้ปัญหา epub ที่ export จาก Google Docs ซึ่งมักรวมทุกบทไว้ในไฟล์ XHTML เดียว (แบ่งด้วย Heading 1) ทำให้รีดเดอร์บางตัวจับ "chapter ที่กำลังอ่าน" ไม่ได้ แม้รายการ chapter จะยังเลือกได้ปกติ</p>
-<p>เครื่องมือจะแยกแต่ละ <code>&lt;h1&gt;</code> ออกเป็นไฟล์ XHTML คนละไฟล์ แล้วสร้าง TOC/NCX/nav ใหม่ให้ชี้ไปแต่ละไฟล์ ทำงานทั้งหมดในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์ไปที่เซิร์ฟเวอร์ใด ๆ</p>
+<h1>EPUB Toolkit</h1>
+<p>เครื่องมือรวม 3 อย่างสำหรับแก้ไข epub ที่ export จาก Google Docs — ทำงานทั้งหมดในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์ไปเซิร์ฟเวอร์ใด ๆ</p>
 
 <div class="box">
-  <label for="fileInput"><strong>เลือกไฟล์ .epub</strong></label>
+  <label for="fileInput"><strong>1. เลือกไฟล์ .epub</strong></label>
   <input type="file" id="fileInput" accept=".epub">
-  <button id="processBtn" disabled>แยก chapter</button>
+
+  <div class="opt">
+    <input type="checkbox" id="optSplit" checked>
+    <div>
+      <label for="optSplit">แยกบทตาม Heading 1</label>
+      <div class="desc">แก้ปัญหา status bar ไม่ขึ้นชื่อ chapter เพราะทุกบทถูกรวมในไฟล์เดียว</div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <input type="checkbox" id="optBoldItalic" checked>
+    <div>
+      <label for="optBoldItalic">แก้ตัวหนา/ตัวเอียงไม่แสดงผล</label>
+      <div class="desc">Google Docs มักใส่ตัวหนา/เอียงผ่าน CSS class ซึ่งรีดเดอร์บางตัวอ่านไม่ได้ เครื่องมือนี้จะแปลงเป็นแท็ก &lt;b&gt;/&lt;i&gt; ตรง ๆ ให้แทน</div>
+    </div>
+  </div>
+
+  <div class="opt">
+    <input type="checkbox" id="optCover">
+    <div>
+      <label for="optCover">เปลี่ยนปกหนังสือ</label>
+      <div class="desc">อัปโหลดรูปปกใหม่ (jpg/png) จะเข้าไปแทนที่ปกเดิมใน epub</div>
+      <input type="file" id="coverInput" accept="image/*" disabled>
+    </div>
+  </div>
+
+  <button id="processBtn" disabled>ประมวลผล</button>
   <div id="log"></div>
   <div id="downloadArea"></div>
 </div>
 
-<p class="note">หมายเหตุ: เครื่องมือค้นหา <code>&lt;h1&gt;</code> ในแต่ละไฟล์เนื้อหาของ epub ถ้าไฟล์ไหนมี h1 ตั้งแต่ 2 อันขึ้นไปจะถูกแยก ไฟล์ที่มี h1 อันเดียวหรือไม่มีเลยจะถูกปล่อยไว้เหมือนเดิม (แต่ยังถูกใส่ชื่อใน TOC ให้ถ้ามี h1)</p>
+<p class="note">หมายเหตุ: การแยกบทจะแยกเฉพาะไฟล์เนื้อหาที่มี Heading 1 ตั้งแต่ 2 อันขึ้นไป ไฟล์ที่มีไม่ถึงจะถูกปล่อยไว้เหมือนเดิม (แต่ยังแก้ตัวหนา/เอียงได้ตามปกติ)</p>
 
 <script>
 const fileInput = document.getElementById('fileInput');
+const coverCheckbox = document.getElementById('optCover');
+const coverInput = document.getElementById('coverInput');
 const processBtn = document.getElementById('processBtn');
 const logEl = document.getElementById('log');
 const downloadArea = document.getElementById('downloadArea');
@@ -46,6 +77,10 @@ fileInput.addEventListener('change', () => {
   processBtn.disabled = !selectedFile;
   logEl.textContent = '';
   downloadArea.innerHTML = '';
+});
+
+coverCheckbox.addEventListener('change', () => {
+  coverInput.disabled = !coverCheckbox.checked;
 });
 
 function log(msg) {
@@ -59,7 +94,11 @@ processBtn.addEventListener('click', async () => {
   logEl.textContent = '';
   downloadArea.innerHTML = '';
   try {
-    await processEpub(selectedFile);
+    await processEpub(selectedFile, {
+      split: document.getElementById('optSplit').checked,
+      boldItalic: document.getElementById('optBoldItalic').checked,
+      cover: coverCheckbox.checked ? (coverInput.files[0] || null) : null
+    });
   } catch (err) {
     log('เกิดข้อผิดพลาด: ' + err.message);
     console.error(err);
@@ -67,26 +106,155 @@ processBtn.addEventListener('click', async () => {
   processBtn.disabled = false;
 });
 
-async function processEpub(file) {
+function escapeXml(str) {
+  return String(str).replace(/[<>&'"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+}
+
+function resolvePath(baseDir, relHref) {
+  if (/^https?:\/\//i.test(relHref)) return null;
+  if (relHref.startsWith('/')) relHref = relHref.slice(1);
+  const baseParts = baseDir.split('/').filter(Boolean);
+  const relParts = relHref.split('/');
+  relParts.forEach(part => {
+    if (part === '.' || part === '') return;
+    else if (part === '..') baseParts.pop();
+    else baseParts.push(part);
+  });
+  return baseParts.join('/');
+}
+
+function parseCssRules(cssText) {
+  const rules = {};
+  cssText = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
+  cssText.split('}').forEach(block => {
+    const parts = block.split('{');
+    if (parts.length < 2) return;
+    const selectors = parts[0].split(',').map(s => s.trim()).filter(Boolean);
+    const decl = parts[1];
+    const bold = /font-weight\s*:\s*(bold|[6-9]00)/i.test(decl);
+    const italic = /font-style\s*:\s*italic/i.test(decl);
+    if (!bold && !italic) return;
+    selectors.forEach(sel => {
+      const classMatches = sel.match(/\.[a-zA-Z0-9_-]+/g);
+      if (!classMatches) return;
+      classMatches.forEach(cm => {
+        const cls = cm.slice(1);
+        if (!rules[cls]) rules[cls] = { bold: false, italic: false };
+        if (bold) rules[cls].bold = true;
+        if (italic) rules[cls].italic = true;
+      });
+    });
+  });
+  return rules;
+}
+
+async function collectCss(zip, htmlDoc, contentDir) {
+  let cssText = '';
+  htmlDoc.querySelectorAll('style').forEach(s => { cssText += s.textContent + '\n'; });
+  const links = Array.from(htmlDoc.querySelectorAll('link[rel="stylesheet"]'));
+  for (const link of links) {
+    const href = link.getAttribute('href');
+    if (!href) continue;
+    const resolved = resolvePath(contentDir, href);
+    if (!resolved) continue;
+    const f = zip.file(resolved);
+    if (f) cssText += (await f.async('string')) + '\n';
+  }
+  return cssText;
+}
+
+function applyBoldItalic(bodyEl, classRules) {
+  let count = 0;
+  const all = Array.from(bodyEl.querySelectorAll('*'));
+  all.forEach(el => {
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'b' || tag === 'strong' || tag === 'i' || tag === 'em' || tag === 'h1' || tag === 'h2' || tag === 'h3') return;
+    const classes = (el.getAttribute('class') || '').split(/\s+/).filter(Boolean);
+    let bold = false, italic = false;
+    classes.forEach(c => {
+      if (classRules[c]) {
+        if (classRules[c].bold) bold = true;
+        if (classRules[c].italic) italic = true;
+      }
+    });
+    const styleAttr = el.getAttribute('style') || '';
+    if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(styleAttr)) bold = true;
+    if (/font-style\s*:\s*italic/i.test(styleAttr)) italic = true;
+    if (!bold && !italic) return;
+    if (!el.firstChild) return;
+    let target = el;
+    if (bold) {
+      const b = el.ownerDocument.createElement('b');
+      while (target.firstChild) b.appendChild(target.firstChild);
+      target.appendChild(b);
+      target = b;
+    }
+    if (italic) {
+      const i = el.ownerDocument.createElement('i');
+      while (target.firstChild) i.appendChild(target.firstChild);
+      target.appendChild(i);
+    }
+    count++;
+  });
+  return count;
+}
+
+async function replaceCover(zip, opfDoc, manifestMap, opfDir, coverFile) {
+  const ext = (coverFile.name.split('.').pop() || 'jpg').toLowerCase();
+  const mediaTypeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+  const mediaType = mediaTypeMap[ext] || 'image/jpeg';
+  const arrayBuf = await coverFile.arrayBuffer();
+
+  let coverItem = Object.values(manifestMap).find(it => it.properties && it.properties.includes('cover-image'));
+  if (!coverItem) {
+    const metaCover = opfDoc.querySelector('metadata meta[name="cover"]');
+    if (metaCover) {
+      const coverId = metaCover.getAttribute('content');
+      coverItem = manifestMap[coverId];
+    }
+  }
+
+  if (coverItem) {
+    const oldPath = opfDir + coverItem.href;
+    zip.remove(oldPath);
+    const newHref = coverItem.href.replace(/\.[^.]+$/, '.' + ext);
+    zip.file(opfDir + newHref, arrayBuf);
+    coverItem.href = newHref;
+    coverItem.mediaType = mediaType;
+    if (!coverItem.properties.includes('cover-image')) {
+      coverItem.properties = (coverItem.properties + ' cover-image').trim();
+    }
+    return 'แทนที่ปกเดิม: ' + newHref;
+  } else {
+    const newId = 'cover-image-new';
+    const newHref = 'cover-new.' + ext;
+    zip.file(opfDir + newHref, arrayBuf);
+    manifestMap[newId] = { id: newId, href: newHref, mediaType, properties: 'cover-image' };
+    let metadataEl = opfDoc.querySelector('metadata');
+    const metaEl = opfDoc.createElement('meta');
+    metaEl.setAttribute('name', 'cover');
+    metaEl.setAttribute('content', newId);
+    metadataEl.appendChild(metaEl);
+    return 'ไม่พบปกเดิม สร้างใหม่เป็น: ' + newHref;
+  }
+}
+
+async function processEpub(file, opts) {
   log('กำลังเปิดไฟล์ epub...');
   const zip = await JSZip.loadAsync(file);
   const parser = new DOMParser();
   const serializer = new XMLSerializer();
 
-  // 1. container.xml -> opf path
   const containerFile = zip.file('META-INF/container.xml');
   if (!containerFile) throw new Error('ไม่พบ META-INF/container.xml ไฟล์นี้อาจไม่ใช่ epub ที่ถูกต้อง');
   const containerXml = await containerFile.async('string');
   const containerDoc = parser.parseFromString(containerXml, 'application/xml');
-  const rootfileEl = containerDoc.querySelector('rootfile');
-  const opfPath = rootfileEl.getAttribute('full-path');
+  const opfPath = containerDoc.querySelector('rootfile').getAttribute('full-path');
   const opfDir = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : '';
   log('พบ content.opf ที่: ' + opfPath);
 
-  const opfFile = zip.file(opfPath);
-  const opfText = await opfFile.async('string');
+  const opfText = await zip.file(opfPath).async('string');
   const opfDoc = parser.parseFromString(opfText, 'application/xml');
-
   const manifestEl = opfDoc.querySelector('manifest');
   const spineEl = opfDoc.querySelector('spine');
   if (!manifestEl || !spineEl) throw new Error('content.opf ไม่มี manifest หรือ spine ที่ถูกต้อง');
@@ -103,18 +271,15 @@ async function processEpub(file) {
 
   const originalSpineOrder = Array.from(spineEl.querySelectorAll('itemref')).map(ir => ir.getAttribute('idref'));
   const newSpineOrder = [];
-  const tocEntries = []; // {href, title} in final reading order
-
+  const tocEntries = [];
   let splitFilesCreated = 0;
+  let boldItalicFixCount = 0;
 
   for (const idref of originalSpineOrder) {
     const item = manifestMap[idref];
-    if (!item) { continue; }
+    if (!item) continue;
     const isHtml = item.mediaType === 'application/xhtml+xml' || item.mediaType === 'text/html';
-    if (!isHtml) {
-      newSpineOrder.push(item.id);
-      continue;
-    }
+    if (!isHtml) { newSpineOrder.push(item.id); continue; }
 
     const fullHref = opfDir + item.href;
     const contentFile = zip.file(fullHref);
@@ -128,14 +293,22 @@ async function processEpub(file) {
     } catch (e) {
       htmlDoc = parser.parseFromString(htmlText, 'text/html');
     }
-
     const bodyEl = htmlDoc.body || htmlDoc.querySelector('body');
+    const contentDir = fullHref.includes('/') ? fullHref.substring(0, fullHref.lastIndexOf('/') + 1) : '';
+
+    if (opts.boldItalic && bodyEl) {
+      const cssText = await collectCss(zip, htmlDoc, contentDir);
+      const classRules = parseCssRules(cssText);
+      boldItalicFixCount += applyBoldItalic(bodyEl, classRules);
+    }
+
     const h1s = bodyEl ? Array.from(bodyEl.querySelectorAll('h1')) : [];
 
-    if (h1s.length < 2) {
-      // nothing meaningful to split
+    if (!opts.split || h1s.length < 2) {
+      const newXhtml = '<?xml version="1.0" encoding="utf-8"?>\n' + serializer.serializeToString(htmlDoc);
+      zip.file(fullHref, newXhtml);
       newSpineOrder.push(item.id);
-      let title = h1s.length === 1 ? h1s[0].textContent.trim() : null;
+      let title = h1s.length >= 1 ? h1s[0].textContent.trim() : null;
       if (!title) {
         const titleTag = htmlDoc.querySelector('title');
         title = titleTag ? titleTag.textContent.trim() : item.href;
@@ -145,8 +318,6 @@ async function processEpub(file) {
     }
 
     log('กำลังแยกไฟล์ ' + item.href + ' — พบ ' + h1s.length + ' หัวข้อ (Heading 1)');
-
-    // group body children into segments starting at each h1
     const children = Array.from(bodyEl.children);
     const segments = [];
     let current = null;
@@ -159,21 +330,15 @@ async function processEpub(file) {
         current.nodes.push(node);
       }
     }
-    // merge any preface (content before first h1) into the first real segment
     if (segments.length && segments[0].title === null) {
       const preface = segments.shift();
-      if (segments.length) {
-        segments[0].nodes = preface.nodes.concat(segments[0].nodes);
-      } else {
-        segments.push(preface);
-      }
+      if (segments.length) segments[0].nodes = preface.nodes.concat(segments[0].nodes);
+      else segments.push(preface);
     }
 
     const htmlEl = htmlDoc.documentElement;
     const htmlAttrs = Array.from(htmlEl.attributes).map(a => `${a.name}="${a.value}"`).join(' ');
     const headStr = htmlDoc.head ? serializer.serializeToString(htmlDoc.head) : '<head><meta charset="utf-8"/></head>';
-
-    const contentDir = fullHref.includes('/') ? fullHref.substring(0, fullHref.lastIndexOf('/') + 1) : '';
     const relDir = contentDir.substring(opfDir.length);
     const rawName = item.href.split('/').pop();
     const baseNameNoExt = rawName.replace(/\.[^.]+$/, '');
@@ -184,11 +349,9 @@ async function processEpub(file) {
       const newFileName = baseNameNoExt + '-part' + (idx + 1) + ext;
       const newHref = relDir + newFileName;
       const fullNewPath = opfDir + newHref;
-
       const bodyContent = seg.nodes.map(n => serializer.serializeToString(n)).join('\n');
       const newXhtml = '<?xml version="1.0" encoding="utf-8"?>\n' +
         '<html ' + htmlAttrs + '>\n' + headStr + '\n<body>\n' + bodyContent + '\n</body>\n</html>';
-
       zip.file(fullNewPath, newXhtml);
       manifestMap[newId] = { id: newId, href: newHref, mediaType: 'application/xhtml+xml', properties: '' };
       newSpineOrder.push(newId);
@@ -200,9 +363,14 @@ async function processEpub(file) {
     zip.remove(fullHref);
   }
 
-  log('สร้างไฟล์บทใหม่ทั้งหมด ' + splitFilesCreated + ' ไฟล์');
+  if (opts.boldItalic) log('แก้ตัวหนา/ตัวเอียงแล้ว ' + boldItalicFixCount + ' จุด');
+  if (opts.split) log('สร้างไฟล์บทใหม่ทั้งหมด ' + splitFilesCreated + ' ไฟล์');
 
-  // rebuild manifest in opf
+  if (opts.cover) {
+    const msg = await replaceCover(zip, opfDoc, manifestMap, opfDir, opts.cover);
+    log(msg);
+  }
+
   Array.from(manifestEl.querySelectorAll('item')).forEach(n => n.remove());
   Object.values(manifestMap).forEach(it => {
     const el = opfDoc.createElement('item');
@@ -213,7 +381,6 @@ async function processEpub(file) {
     manifestEl.appendChild(el);
   });
 
-  // rebuild spine
   Array.from(spineEl.querySelectorAll('itemref')).forEach(n => n.remove());
   newSpineOrder.forEach(id => {
     const el = opfDoc.createElement('itemref');
@@ -221,56 +388,49 @@ async function processEpub(file) {
     spineEl.appendChild(el);
   });
 
-  const newOpfText = serializer.serializeToString(opfDoc);
-  zip.file(opfPath, newOpfText);
+  zip.file(opfPath, serializer.serializeToString(opfDoc));
   log('อัปเดต content.opf เรียบร้อย');
 
-  // regenerate NCX if present
-  const ncxItem = Object.values(manifestMap).find(it => it.mediaType === 'application/x-dtbncx+xml');
-  if (ncxItem) {
-    const ncxPath = opfDir + ncxItem.href;
-    let bookTitle = 'Untitled';
-    const titleEl = opfDoc.querySelector('metadata > *[*|title], metadata title');
-    if (titleEl) bookTitle = titleEl.textContent.trim();
-    let navPoints = '';
-    tocEntries.forEach((entry, i) => {
-      navPoints += `<navPoint id="navpoint-${i + 1}" playOrder="${i + 1}"><navLabel><text>${escapeXml(entry.title)}</text></navLabel><content src="${escapeXml(entry.href)}"/></navPoint>\n`;
-    });
-    const ncxText = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-      '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n' +
-      '<head><meta name="dtb:uid" content="split-epub"/></head>\n' +
-      `<docTitle><text>${escapeXml(bookTitle)}</text></docTitle>\n` +
-      '<navMap>\n' + navPoints + '</navMap>\n</ncx>';
-    zip.file(ncxPath, ncxText);
-    log('อัปเดต toc.ncx เรียบร้อย (' + tocEntries.length + ' รายการ)');
-  }
+  if (opts.split) {
+    const ncxItem = Object.values(manifestMap).find(it => it.mediaType === 'application/x-dtbncx+xml');
+    if (ncxItem) {
+      const ncxPath = opfDir + ncxItem.href;
+      let bookTitle = 'Untitled';
+      const titleEl = opfDoc.querySelector('metadata title');
+      if (titleEl) bookTitle = titleEl.textContent.trim();
+      let navPoints = '';
+      tocEntries.forEach((entry, i) => {
+        navPoints += `<navPoint id="navpoint-${i + 1}" playOrder="${i + 1}"><navLabel><text>${escapeXml(entry.title)}</text></navLabel><content src="${escapeXml(entry.href)}"/></navPoint>\n`;
+      });
+      const ncxText = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n' +
+        '<head><meta name="dtb:uid" content="split-epub"/></head>\n' +
+        `<docTitle><text>${escapeXml(bookTitle)}</text></docTitle>\n` +
+        '<navMap>\n' + navPoints + '</navMap>\n</ncx>';
+      zip.file(ncxPath, ncxText);
+      log('อัปเดต toc.ncx เรียบร้อย (' + tocEntries.length + ' รายการ)');
+    }
 
-  // regenerate EPUB3 nav if present
-  const navItem = Object.values(manifestMap).find(it => it.properties && it.properties.includes('nav'));
-  if (navItem) {
-    const navPath = opfDir + navItem.href;
-    let items = '';
-    tocEntries.forEach(entry => {
-      items += `<li><a href="${escapeXml(entry.href)}">${escapeXml(entry.title)}</a></li>\n`;
-    });
-    const navText = '<?xml version="1.0" encoding="utf-8"?>\n' +
-      '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">\n' +
-      '<head><meta charset="utf-8"/><title>Table of Contents</title></head>\n' +
-      '<body><nav epub:type="toc" id="toc"><ol>\n' + items + '</ol></nav></body></html>';
-    zip.file(navPath, navText);
-    log('อัปเดต nav.xhtml เรียบร้อย');
+    const navItem = Object.values(manifestMap).find(it => it.properties && it.properties.includes('nav'));
+    if (navItem) {
+      const navPath = opfDir + navItem.href;
+      let items = '';
+      tocEntries.forEach(entry => { items += `<li><a href="${escapeXml(entry.href)}">${escapeXml(entry.title)}</a></li>\n`; });
+      const navText = '<?xml version="1.0" encoding="utf-8"?>\n' +
+        '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">\n' +
+        '<head><meta charset="utf-8"/><title>Table of Contents</title></head>\n' +
+        '<body><nav epub:type="toc" id="toc"><ol>\n' + items + '</ol></nav></body></html>';
+      zip.file(navPath, navText);
+      log('อัปเดต nav.xhtml เรียบร้อย');
+    }
   }
 
   log('กำลังบีบอัดไฟล์ epub ใหม่...');
   const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
   const url = URL.createObjectURL(blob);
-  const outName = selectedFile.name.replace(/\.epub$/i, '') + '-split.epub';
+  const outName = file.name.replace(/\.epub$/i, '') + '-fixed.epub';
   downloadArea.innerHTML = `<a class="dl" href="${url}" download="${outName}">ดาวน์โหลด ${outName}</a>`;
   log('เสร็จแล้ว! กดปุ่มด้านล่างเพื่อดาวน์โหลด');
-}
-
-function escapeXml(str) {
-  return String(str).replace(/[<>&'"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
 }
 </script>
 
