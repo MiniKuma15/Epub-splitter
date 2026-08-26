@@ -57,6 +57,14 @@
   </div>
 
   <div class="opt">
+    <input type="checkbox" id="optCoverPage" checked>
+    <div>
+      <label for="optCoverPage">สร้างหน้าปกให้เป็นหน้าแรกเวลาเปิดอ่าน</label>
+      <div class="desc">epub จาก Google Docs มักไม่มีหน้าปกจริงในเล่ม มีแค่รูปสำหรับ thumbnail เท่านั้น ทำให้เปิดอ่านแล้วไม่เห็นปก ตัวเลือกนี้จะสร้างหน้าปกจริงให้ (ข้ามถ้าเจอว่ามีอยู่แล้ว)</div>
+    </div>
+  </div>
+
+  <div class="opt">
     <input type="checkbox" id="optMeta">
     <div>
       <label for="optMeta">แก้ไขชื่อเรื่อง / ผู้แต่ง</label>
@@ -157,6 +165,7 @@ processBtn.addEventListener('click', async () => {
       split: document.getElementById('optSplit').checked,
       boldItalic: document.getElementById('optBoldItalic').checked,
       cover: coverCheckbox.checked ? (coverInput.files[0] || null) : null,
+      coverPage: document.getElementById('optCoverPage').checked,
       newTitle: metaCheckbox.checked ? titleInput.value.trim() : '',
       newAuthor: metaCheckbox.checked ? authorInput.value.trim() : ''
     });
@@ -258,6 +267,50 @@ function applyBoldItalic(bodyEl, classRules) {
     count++;
   });
   return count;
+}
+
+function findExistingCoverPage(manifestMap, spineOrderIds) {
+  for (const id of spineOrderIds) {
+    const it = manifestMap[id];
+    if (it && it.mediaType === 'application/xhtml+xml' && /cover/i.test(it.href)) return it;
+  }
+  return null;
+}
+
+function ensureCoverPage(zip, opfDoc, manifestMap, newSpineOrder, opfDir) {
+  const coverImgItem = Object.values(manifestMap).find(it => it.properties && it.properties.includes('cover-image'));
+  if (!coverImgItem) return 'ไม่พบรูปปกในไฟล์ ข้ามการสร้างหน้าปก';
+
+  const existing = findExistingCoverPage(manifestMap, newSpineOrder);
+  if (existing) return 'พบหน้าปกอยู่แล้ว: ' + existing.href;
+
+  const newId = 'cover-page-generated';
+  const newHref = 'cover-page.xhtml';
+  const xhtml = '<?xml version="1.0" encoding="utf-8"?>\n' +
+    '<html xmlns="http://www.w3.org/1999/xhtml">\n' +
+    '<head><meta charset="utf-8"/><title>Cover</title>' +
+    '<style>html,body{margin:0;padding:0;text-align:center;}img{max-width:100%;max-height:100vh;}</style></head>\n' +
+    '<body><div><img src="' + coverImgItem.href + '" alt="Cover"/></div></body></html>';
+  zip.file(opfDir + newHref, xhtml);
+  manifestMap[newId] = { id: newId, href: newHref, mediaType: 'application/xhtml+xml', properties: '' };
+  newSpineOrder.unshift(newId);
+
+  const packageEl = opfDoc.documentElement;
+  let guideEl = opfDoc.querySelector('guide');
+  if (!guideEl) {
+    guideEl = opfDoc.createElement('guide');
+    packageEl.appendChild(guideEl);
+  }
+  let refEl = Array.from(guideEl.querySelectorAll('reference')).find(r => r.getAttribute('type') === 'cover');
+  if (!refEl) {
+    refEl = opfDoc.createElement('reference');
+    refEl.setAttribute('type', 'cover');
+    refEl.setAttribute('title', 'Cover');
+    guideEl.appendChild(refEl);
+  }
+  refEl.setAttribute('href', newHref);
+
+  return 'สร้างหน้าปกใหม่: ' + newHref;
 }
 
 async function replaceCover(zip, opfDoc, manifestMap, opfDir, coverFile) {
@@ -429,6 +482,11 @@ async function processEpub(file, opts) {
 
   if (opts.cover) {
     const msg = await replaceCover(zip, opfDoc, manifestMap, opfDir, opts.cover);
+    log(msg);
+  }
+
+  if (opts.coverPage) {
+    const msg = ensureCoverPage(zip, opfDoc, manifestMap, newSpineOrder, opfDir);
     log(msg);
   }
 
