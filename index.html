@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EPUB Toolkit — แยกบท / แก้ตัวหนา-เอียง / เปลี่ยนปก</title>
+<title>Epub Toolkit สำหรับ Xteink by Mimee Reader</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   body { font-family: -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; line-height: 1.6; color: #222; }
@@ -24,7 +24,7 @@
 </head>
 <body>
 
-<h1>EPUB Toolkit</h1>
+<h1>Epub Toolkit สำหรับ Xteink by Mimee Reader</h1>
 <p>เครื่องมือรวม 3 อย่างสำหรับแก้ไข epub ที่ export จาก Google Docs — ทำงานทั้งหมดในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์ไปเซิร์ฟเวอร์ใด ๆ</p>
 
 <div class="box">
@@ -56,6 +56,22 @@
     </div>
   </div>
 
+  <div class="opt">
+    <input type="checkbox" id="optMeta">
+    <div>
+      <label for="optMeta">แก้ไขชื่อเรื่อง / ผู้แต่ง</label>
+      <div class="desc">ค่าปัจจุบันของไฟล์จะขึ้นให้อัตโนมัติเมื่อเลือกไฟล์ แก้ตรงไหนก็เปลี่ยนตรงนั้น เว้นว่างไว้ = ไม่เปลี่ยน</div>
+      <div style="margin-top:8px;">
+        <label style="font-weight:normal; display:block; font-size:0.9em; margin-bottom:2px;">ชื่อเรื่อง</label>
+        <input type="text" id="titleInput" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+      </div>
+      <div style="margin-top:8px;">
+        <label style="font-weight:normal; display:block; font-size:0.9em; margin-bottom:2px;">ผู้แต่ง</label>
+        <input type="text" id="authorInput" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
+      </div>
+    </div>
+  </div>
+
   <button id="processBtn" disabled>ประมวลผล</button>
   <div id="log"></div>
   <div id="downloadArea"></div>
@@ -67,21 +83,64 @@
 const fileInput = document.getElementById('fileInput');
 const coverCheckbox = document.getElementById('optCover');
 const coverInput = document.getElementById('coverInput');
+const metaCheckbox = document.getElementById('optMeta');
+const titleInput = document.getElementById('titleInput');
+const authorInput = document.getElementById('authorInput');
 const processBtn = document.getElementById('processBtn');
 const logEl = document.getElementById('log');
 const downloadArea = document.getElementById('downloadArea');
 let selectedFile = null;
 
-fileInput.addEventListener('change', () => {
+fileInput.addEventListener('change', async () => {
   selectedFile = fileInput.files[0] || null;
   processBtn.disabled = !selectedFile;
   logEl.textContent = '';
   downloadArea.innerHTML = '';
+  titleInput.value = '';
+  authorInput.value = '';
+  if (selectedFile) await loadMetadataPreview(selectedFile);
 });
 
 coverCheckbox.addEventListener('change', () => {
   coverInput.disabled = !coverCheckbox.checked;
 });
+
+metaCheckbox.addEventListener('change', () => {
+  titleInput.disabled = !metaCheckbox.checked;
+  authorInput.disabled = !metaCheckbox.checked;
+});
+
+async function loadMetadataPreview(file) {
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const parser = new DOMParser();
+    const containerXml = await zip.file('META-INF/container.xml').async('string');
+    const containerDoc = parser.parseFromString(containerXml, 'application/xml');
+    const opfPath = containerDoc.querySelector('rootfile').getAttribute('full-path');
+    const opfText = await zip.file(opfPath).async('string');
+    const opfDoc = parser.parseFromString(opfText, 'application/xml');
+    const DC_NS = 'http://purl.org/dc/elements/1.1/';
+    const titleEl = opfDoc.getElementsByTagNameNS(DC_NS, 'title')[0];
+    const creatorEl = opfDoc.getElementsByTagNameNS(DC_NS, 'creator')[0];
+    titleInput.value = titleEl ? titleEl.textContent.trim() : '';
+    authorInput.value = creatorEl ? creatorEl.textContent.trim() : '';
+  } catch (e) {
+    // preview is best-effort; ignore failures here, real errors surface during processing
+  }
+}
+
+function setDcMetadata(opfDoc, localName, value) {
+  const DC_NS = 'http://purl.org/dc/elements/1.1/';
+  const metadataEl = opfDoc.querySelector('metadata');
+  const existing = metadataEl.getElementsByTagNameNS(DC_NS, localName)[0];
+  if (existing) {
+    existing.textContent = value;
+  } else {
+    const newEl = opfDoc.createElementNS(DC_NS, 'dc:' + localName);
+    newEl.textContent = value;
+    metadataEl.appendChild(newEl);
+  }
+}
 
 function log(msg) {
   logEl.textContent += msg + '\n';
@@ -97,7 +156,9 @@ processBtn.addEventListener('click', async () => {
     await processEpub(selectedFile, {
       split: document.getElementById('optSplit').checked,
       boldItalic: document.getElementById('optBoldItalic').checked,
-      cover: coverCheckbox.checked ? (coverInput.files[0] || null) : null
+      cover: coverCheckbox.checked ? (coverInput.files[0] || null) : null,
+      newTitle: metaCheckbox.checked ? titleInput.value.trim() : '',
+      newAuthor: metaCheckbox.checked ? authorInput.value.trim() : ''
     });
   } catch (err) {
     log('เกิดข้อผิดพลาด: ' + err.message);
@@ -369,6 +430,15 @@ async function processEpub(file, opts) {
   if (opts.cover) {
     const msg = await replaceCover(zip, opfDoc, manifestMap, opfDir, opts.cover);
     log(msg);
+  }
+
+  if (opts.newTitle) {
+    setDcMetadata(opfDoc, 'title', opts.newTitle);
+    log('เปลี่ยนชื่อเรื่องเป็น: ' + opts.newTitle);
+  }
+  if (opts.newAuthor) {
+    setDcMetadata(opfDoc, 'creator', opts.newAuthor);
+    log('เปลี่ยนผู้แต่งเป็น: ' + opts.newAuthor);
   }
 
   Array.from(manifestEl.querySelectorAll('item')).forEach(n => n.remove());
