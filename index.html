@@ -214,18 +214,19 @@ function parseCssRules(cssText) {
     const vAlign = vAlignMatch ? vAlignMatch[1].toLowerCase() : null;
     const textIndentMatch = decl.match(/text-indent\s*:\s*(-?[\d.]+[a-z%]*)/i);
     const marginLeftMatch = decl.match(/margin-left\s*:\s*(-?[\d.]+[a-z%]*)/i);
-    const marginTopMatch = decl.match(/margin-(?:top|before)\s*:\s*(-?[\d.]+[a-z%]*)/i);
-    const marginBottomMatch = decl.match(/margin-(?:bottom|after)\s*:\s*(-?[\d.]+[a-z%]*)/i);
+    const marginTopMatch = decl.match(/(?:margin|padding)-(?:top|before)\s*:\s*(-?[\d.]+[a-z%]*)/i);
+    const marginBottomMatch = decl.match(/(?:margin|padding)-(?:bottom|after)\s*:\s*(-?[\d.]+[a-z%]*)/i);
     const lineHeightMatch = decl.match(/line-height\s*:\s*([\d.]+%?[a-z]*)/i);
+    const heightMatch = decl.match(/(?<!-)height\s*:\s*([\d.]+[a-z%]*)/i);
 
-    if (!bold && !italic && !align && !underline && !strike && !vAlign && !textIndentMatch && !marginLeftMatch && !marginTopMatch && !marginBottomMatch && !lineHeightMatch) return;
+    if (!bold && !italic && !align && !underline && !strike && !vAlign && !textIndentMatch && !marginLeftMatch && !marginTopMatch && !marginBottomMatch && !lineHeightMatch && !heightMatch) return;
 
     selectors.forEach(sel => {
       const classMatches = sel.match(/\.[a-zA-Z0-9_-]+/g);
       if (classMatches) {
         classMatches.forEach(cm => {
           const cls = cm.slice(1);
-          if (!rules[cls]) rules[cls] = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null };
+          if (!rules[cls]) rules[cls] = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null, height: null };
           if (bold) rules[cls].bold = true;
           if (italic) rules[cls].italic = true;
           if (align) rules[cls].align = align;
@@ -237,13 +238,14 @@ function parseCssRules(cssText) {
           if (marginTopMatch) rules[cls].marginTop = marginTopMatch[1];
           if (marginBottomMatch) rules[cls].marginBottom = marginBottomMatch[1];
           if (lineHeightMatch) rules[cls].lineHeight = lineHeightMatch[1];
+          if (heightMatch) rules[cls].height = heightMatch[1];
         });
         return;
       }
       // bare tag selector fallback, e.g. plain "p" or "li" rules (Google Docs default paragraph spacing)
       if (/^[a-zA-Z][a-zA-Z0-9]*$/.test(sel)) {
         const key = 'tag:' + sel.toLowerCase();
-        if (!rules[key]) rules[key] = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null };
+        if (!rules[key]) rules[key] = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null, height: null };
         if (bold) rules[key].bold = true;
         if (italic) rules[key].italic = true;
         if (align) rules[key].align = align;
@@ -255,6 +257,7 @@ function parseCssRules(cssText) {
         if (marginTopMatch) rules[key].marginTop = marginTopMatch[1];
         if (marginBottomMatch) rules[key].marginBottom = marginBottomMatch[1];
         if (lineHeightMatch) rules[key].lineHeight = lineHeightMatch[1];
+        if (heightMatch) rules[key].height = heightMatch[1];
       }
     });
   });
@@ -283,7 +286,7 @@ function applyBoldItalic(bodyEl, classRules) {
     const tag = el.tagName.toLowerCase();
     const classes = (el.getAttribute('class') || '').split(/\s+/).filter(Boolean);
 
-    const rule = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null };
+    const rule = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null, height: null };
     const tagDefault = classRules['tag:' + tag];
     if (tagDefault) {
       if (tagDefault.bold) rule.bold = true;
@@ -297,6 +300,7 @@ function applyBoldItalic(bodyEl, classRules) {
       if (tagDefault.marginTop) rule.marginTop = tagDefault.marginTop;
       if (tagDefault.marginBottom) rule.marginBottom = tagDefault.marginBottom;
       if (tagDefault.lineHeight) rule.lineHeight = tagDefault.lineHeight;
+      if (tagDefault.height) rule.height = tagDefault.height;
     }
     classes.forEach(c => {
       const r = classRules[c];
@@ -312,6 +316,7 @@ function applyBoldItalic(bodyEl, classRules) {
       if (r.marginTop) rule.marginTop = r.marginTop;
       if (r.marginBottom) rule.marginBottom = r.marginBottom;
       if (r.lineHeight) rule.lineHeight = r.lineHeight;
+      if (r.height) rule.height = r.height;
     });
 
     const styleAttr = el.getAttribute('style') || '';
@@ -343,6 +348,7 @@ function applyBoldItalic(bodyEl, classRules) {
       if (rule.marginTop && !/margin-top/i.test(currentStyle)) spacingParts.push('margin-top:' + rule.marginTop);
       if (rule.marginBottom && !/margin-bottom/i.test(currentStyle)) spacingParts.push('margin-bottom:' + rule.marginBottom);
       if (rule.lineHeight && !/line-height/i.test(currentStyle)) spacingParts.push('line-height:' + rule.lineHeight);
+      if (rule.height && !/(?<!-)height\s*:/i.test(currentStyle)) spacingParts.push('height:' + rule.height);
       if (spacingParts.length) {
         const merged = (el.getAttribute('style') ? el.getAttribute('style').replace(/;?\s*$/, ';') : '') + spacingParts.join(';');
         el.setAttribute('style', merged);
