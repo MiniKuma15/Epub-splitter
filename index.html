@@ -42,8 +42,8 @@
   <div class="opt">
     <input type="checkbox" id="optBoldItalic" checked>
     <div>
-      <label for="optBoldItalic">แก้ตัวหนา/ตัวเอียงไม่แสดงผล</label>
-      <div class="desc">Google Docs มักใส่ตัวหนา/เอียงผ่าน CSS class ซึ่งรีดเดอร์บางตัวอ่านไม่ได้ เครื่องมือนี้จะแปลงเป็นแท็ก &lt;b&gt;/&lt;i&gt; ตรง ๆ ให้แทน</div>
+      <label for="optBoldItalic">แก้การจัดรูปแบบข้อความไม่แสดงผล</label>
+      <div class="desc">Google Docs มักใส่ตัวหนา/เอียง/ขีดเส้นใต้/ขีดฆ่า/ตัวยก-ตัวห้อย/จัดกึ่งกลาง-ซ้าย-ขวา/ย่อหน้า/ระยะห่างก่อน-หลังย่อหน้า/ระยะห่างระหว่างบรรทัด ผ่าน CSS class ซึ่งรีดเดอร์บางตัวอ่านไม่ได้ เครื่องมือนี้แปลงกลับเป็นแท็ก/attribute/inline style ตรง ๆ ให้ทั้งหมด</div>
     </div>
   </div>
 
@@ -201,18 +201,61 @@ function parseCssRules(cssText) {
     if (parts.length < 2) return;
     const selectors = parts[0].split(',').map(s => s.trim()).filter(Boolean);
     const decl = parts[1];
+
     const bold = /font-weight\s*:\s*(bold|[6-9]00)/i.test(decl);
     const italic = /font-style\s*:\s*italic/i.test(decl);
-    if (!bold && !italic) return;
+    const alignMatch = decl.match(/text-align\s*:\s*(left|right|center|justify)/i);
+    const align = alignMatch ? alignMatch[1].toLowerCase() : null;
+    const decoMatch = decl.match(/text-decoration(?:-line)?\s*:\s*([^;]+)/i);
+    const decoVal = decoMatch ? decoMatch[1].toLowerCase() : '';
+    const underline = /underline/.test(decoVal);
+    const strike = /line-through/.test(decoVal);
+    const vAlignMatch = decl.match(/vertical-align\s*:\s*(super|sub)/i);
+    const vAlign = vAlignMatch ? vAlignMatch[1].toLowerCase() : null;
+    const textIndentMatch = decl.match(/text-indent\s*:\s*(-?[\d.]+[a-z%]*)/i);
+    const marginLeftMatch = decl.match(/margin-left\s*:\s*(-?[\d.]+[a-z%]*)/i);
+    const marginTopMatch = decl.match(/margin-(?:top|before)\s*:\s*(-?[\d.]+[a-z%]*)/i);
+    const marginBottomMatch = decl.match(/margin-(?:bottom|after)\s*:\s*(-?[\d.]+[a-z%]*)/i);
+    const lineHeightMatch = decl.match(/line-height\s*:\s*([\d.]+%?[a-z]*)/i);
+
+    if (!bold && !italic && !align && !underline && !strike && !vAlign && !textIndentMatch && !marginLeftMatch && !marginTopMatch && !marginBottomMatch && !lineHeightMatch) return;
+
     selectors.forEach(sel => {
       const classMatches = sel.match(/\.[a-zA-Z0-9_-]+/g);
-      if (!classMatches) return;
-      classMatches.forEach(cm => {
-        const cls = cm.slice(1);
-        if (!rules[cls]) rules[cls] = { bold: false, italic: false };
-        if (bold) rules[cls].bold = true;
-        if (italic) rules[cls].italic = true;
-      });
+      if (classMatches) {
+        classMatches.forEach(cm => {
+          const cls = cm.slice(1);
+          if (!rules[cls]) rules[cls] = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null };
+          if (bold) rules[cls].bold = true;
+          if (italic) rules[cls].italic = true;
+          if (align) rules[cls].align = align;
+          if (underline) rules[cls].underline = true;
+          if (strike) rules[cls].strike = true;
+          if (vAlign) rules[cls].vAlign = vAlign;
+          if (textIndentMatch) rules[cls].textIndent = textIndentMatch[1];
+          if (marginLeftMatch) rules[cls].marginLeft = marginLeftMatch[1];
+          if (marginTopMatch) rules[cls].marginTop = marginTopMatch[1];
+          if (marginBottomMatch) rules[cls].marginBottom = marginBottomMatch[1];
+          if (lineHeightMatch) rules[cls].lineHeight = lineHeightMatch[1];
+        });
+        return;
+      }
+      // bare tag selector fallback, e.g. plain "p" or "li" rules (Google Docs default paragraph spacing)
+      if (/^[a-zA-Z][a-zA-Z0-9]*$/.test(sel)) {
+        const key = 'tag:' + sel.toLowerCase();
+        if (!rules[key]) rules[key] = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null };
+        if (bold) rules[key].bold = true;
+        if (italic) rules[key].italic = true;
+        if (align) rules[key].align = align;
+        if (underline) rules[key].underline = true;
+        if (strike) rules[key].strike = true;
+        if (vAlign) rules[key].vAlign = vAlign;
+        if (textIndentMatch) rules[key].textIndent = textIndentMatch[1];
+        if (marginLeftMatch) rules[key].marginLeft = marginLeftMatch[1];
+        if (marginTopMatch) rules[key].marginTop = marginTopMatch[1];
+        if (marginBottomMatch) rules[key].marginBottom = marginBottomMatch[1];
+        if (lineHeightMatch) rules[key].lineHeight = lineHeightMatch[1];
+      }
     });
   });
   return rules;
@@ -238,32 +281,94 @@ function applyBoldItalic(bodyEl, classRules) {
   const all = Array.from(bodyEl.querySelectorAll('*'));
   all.forEach(el => {
     const tag = el.tagName.toLowerCase();
-    if (tag === 'b' || tag === 'strong' || tag === 'i' || tag === 'em' || tag === 'h1' || tag === 'h2' || tag === 'h3') return;
     const classes = (el.getAttribute('class') || '').split(/\s+/).filter(Boolean);
-    let bold = false, italic = false;
+
+    const rule = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null };
+    const tagDefault = classRules['tag:' + tag];
+    if (tagDefault) {
+      if (tagDefault.bold) rule.bold = true;
+      if (tagDefault.italic) rule.italic = true;
+      if (tagDefault.align) rule.align = tagDefault.align;
+      if (tagDefault.underline) rule.underline = true;
+      if (tagDefault.strike) rule.strike = true;
+      if (tagDefault.vAlign) rule.vAlign = tagDefault.vAlign;
+      if (tagDefault.textIndent) rule.textIndent = tagDefault.textIndent;
+      if (tagDefault.marginLeft) rule.marginLeft = tagDefault.marginLeft;
+      if (tagDefault.marginTop) rule.marginTop = tagDefault.marginTop;
+      if (tagDefault.marginBottom) rule.marginBottom = tagDefault.marginBottom;
+      if (tagDefault.lineHeight) rule.lineHeight = tagDefault.lineHeight;
+    }
     classes.forEach(c => {
-      if (classRules[c]) {
-        if (classRules[c].bold) bold = true;
-        if (classRules[c].italic) italic = true;
-      }
+      const r = classRules[c];
+      if (!r) return;
+      if (r.bold) rule.bold = true;
+      if (r.italic) rule.italic = true;
+      if (r.align) rule.align = r.align;
+      if (r.underline) rule.underline = true;
+      if (r.strike) rule.strike = true;
+      if (r.vAlign) rule.vAlign = r.vAlign;
+      if (r.textIndent) rule.textIndent = r.textIndent;
+      if (r.marginLeft) rule.marginLeft = r.marginLeft;
+      if (r.marginTop) rule.marginTop = r.marginTop;
+      if (r.marginBottom) rule.marginBottom = r.marginBottom;
+      if (r.lineHeight) rule.lineHeight = r.lineHeight;
     });
+
     const styleAttr = el.getAttribute('style') || '';
-    if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(styleAttr)) bold = true;
-    if (/font-style\s*:\s*italic/i.test(styleAttr)) italic = true;
-    if (!bold && !italic) return;
+    if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(styleAttr)) rule.bold = true;
+    if (/font-style\s*:\s*italic/i.test(styleAttr)) rule.italic = true;
+    const inlineAlignMatch = styleAttr.match(/text-align\s*:\s*(left|right|center|justify)/i);
+    if (inlineAlignMatch) rule.align = inlineAlignMatch[1].toLowerCase();
+    if (/text-decoration(?:-line)?\s*:[^;]*underline/i.test(styleAttr)) rule.underline = true;
+    if (/text-decoration(?:-line)?\s*:[^;]*line-through/i.test(styleAttr)) rule.strike = true;
+    const inlineVAlign = styleAttr.match(/vertical-align\s*:\s*(super|sub)/i);
+    if (inlineVAlign) rule.vAlign = inlineVAlign[1].toLowerCase();
+
+    // --- alignment: real attribute + inline style, on block-level elements (left included, so default is explicit too) ---
+    if (rule.align && tag !== 'span' && tag !== 'a' && tag !== 'b' && tag !== 'i' && tag !== 'u' && tag !== 's') {
+      el.setAttribute('align', rule.align);
+      if (!inlineAlignMatch) {
+        const merged = (styleAttr ? styleAttr.replace(/;?\s*$/, ';') : '') + 'text-align:' + rule.align;
+        el.setAttribute('style', merged);
+      }
+      count++;
+    }
+
+    // --- paragraph spacing / indent: best-effort inline style on block containers ---
+    if (tag === 'p' || tag === 'div' || tag === 'blockquote' || tag === 'li') {
+      const spacingParts = [];
+      const currentStyle = el.getAttribute('style') || '';
+      if (rule.textIndent && !/text-indent/i.test(currentStyle)) spacingParts.push('text-indent:' + rule.textIndent);
+      if (rule.marginLeft && !/margin-left/i.test(currentStyle)) spacingParts.push('margin-left:' + rule.marginLeft);
+      if (rule.marginTop && !/margin-top/i.test(currentStyle)) spacingParts.push('margin-top:' + rule.marginTop);
+      if (rule.marginBottom && !/margin-bottom/i.test(currentStyle)) spacingParts.push('margin-bottom:' + rule.marginBottom);
+      if (rule.lineHeight && !/line-height/i.test(currentStyle)) spacingParts.push('line-height:' + rule.lineHeight);
+      if (spacingParts.length) {
+        const merged = (el.getAttribute('style') ? el.getAttribute('style').replace(/;?\s*$/, ';') : '') + spacingParts.join(';');
+        el.setAttribute('style', merged);
+        count++;
+      }
+    }
+
+    // --- character-level: bold / italic / underline / strikethrough / superscript / subscript ---
+    if (tag === 'b' || tag === 'strong' || tag === 'i' || tag === 'em' || tag === 'u' || tag === 's' || tag === 'strike' ||
+        tag === 'sup' || tag === 'sub' || tag === 'h1' || tag === 'h2' || tag === 'h3') return;
+    if (!rule.bold && !rule.italic && !rule.underline && !rule.strike && !rule.vAlign) return;
     if (!el.firstChild) return;
+
     let target = el;
-    if (bold) {
-      const b = el.ownerDocument.createElement('b');
-      while (target.firstChild) b.appendChild(target.firstChild);
-      target.appendChild(b);
-      target = b;
-    }
-    if (italic) {
-      const i = el.ownerDocument.createElement('i');
-      while (target.firstChild) i.appendChild(target.firstChild);
-      target.appendChild(i);
-    }
+    const wrap = (tagName) => {
+      const w = el.ownerDocument.createElement(tagName);
+      while (target.firstChild) w.appendChild(target.firstChild);
+      target.appendChild(w);
+      target = w;
+    };
+    if (rule.bold) wrap('b');
+    if (rule.italic) wrap('i');
+    if (rule.underline) wrap('u');
+    if (rule.strike) wrap('s');
+    if (rule.vAlign === 'super') wrap('sup');
+    else if (rule.vAlign === 'sub') wrap('sub');
     count++;
   });
   return count;
@@ -477,7 +582,7 @@ async function processEpub(file, opts) {
     zip.remove(fullHref);
   }
 
-  if (opts.boldItalic) log('แก้ตัวหนา/ตัวเอียงแล้ว ' + boldItalicFixCount + ' จุด');
+  if (opts.boldItalic) log('แก้การจัดรูปแบบข้อความแล้ว ' + boldItalicFixCount + ' จุด');
   if (opts.split) log('สร้างไฟล์บทใหม่ทั้งหมด ' + splitFilesCreated + ' ไฟล์');
 
   if (opts.cover) {
