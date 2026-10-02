@@ -6,672 +6,421 @@
 <title>Epub Toolkit สำหรับ Xteink by Mimee Reader</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-  body { font-family: -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; line-height: 1.6; color: #222; }
-  h1 { font-size: 1.4em; }
-  .box { border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin-top: 20px; }
-  .opt { display: flex; align-items: flex-start; gap: 10px; margin: 14px 0; }
-  .opt input[type=checkbox] { margin-top: 4px; width: 18px; height: 18px; }
-  .opt label { font-weight: 600; }
-  .opt .desc { font-size: 0.85em; color: #666; font-weight: normal; margin-top: 2px; }
-  input[type=file] { display: block; margin: 10px 0; }
-  button { background: #2563eb; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 1em; cursor: pointer; margin-top: 8px; }
-  button:disabled { background: #9ca3af; cursor: not-allowed; }
-  #log { white-space: pre-wrap; font-family: monospace; font-size: 0.85em; background: #f6f6f6; border-radius: 8px; padding: 12px; margin-top: 16px; max-height: 260px; overflow-y: auto; }
-  #downloadArea { margin-top: 16px; }
-  a.dl { display: inline-block; background: #16a34a; color: #fff; padding: 10px 18px; border-radius: 8px; text-decoration: none; }
-  .note { font-size: 0.85em; color: #666; }
+body{font-family:-apple-system,"Segoe UI","Noto Sans Thai",sans-serif;max-width:640px;margin:32px auto;padding:0 16px;line-height:1.6;color:#222}
+h1{font-size:1.35em}
+.box{border:1px solid #ddd;border-radius:10px;padding:18px;margin-top:16px}
+.opt{display:flex;gap:10px;margin:14px 0;align-items:flex-start}
+.opt>input[type=checkbox]{margin-top:5px;width:18px;height:18px;flex:none}
+.opt label{font-weight:600}
+.desc{font-size:.85em;color:#666;font-weight:400}
+.sub{margin-top:6px}
+input[type=file]{display:block;margin:8px 0}
+input[type=text],select{width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box;font:inherit}
+button{background:#2563eb;color:#fff;border:0;padding:10px 18px;border-radius:8px;font-size:1em;cursor:pointer;margin-top:8px}
+button:disabled{background:#9ca3af}
+#log{white-space:pre-wrap;font-family:monospace;font-size:.85em;background:#f6f6f6;border-radius:8px;padding:12px;margin-top:14px;max-height:260px;overflow-y:auto}
+a.dl{display:inline-block;background:#16a34a;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;margin-top:14px}
 </style>
 </head>
 <body>
-
 <h1>Epub Toolkit สำหรับ Xteink by Mimee Reader</h1>
-<p>เครื่องมือรวม 3 อย่างสำหรับแก้ไข epub ที่ export จาก Google Docs — ทำงานทั้งหมดในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์ไปเซิร์ฟเวอร์ใด ๆ</p>
+<p class="desc">แก้ epub ที่ export จาก Google Docs ทำงานในเบราว์เซอร์ทั้งหมด ไม่อัปโหลดไฟล์ไปที่ไหน</p>
 
 <div class="box">
-  <label for="fileInput"><strong>1. เลือกไฟล์ .epub</strong></label>
-  <input type="file" id="fileInput" accept=".epub">
+<label for="fileInput"><b>1. เลือกไฟล์ .epub</b></label>
+<input type="file" id="fileInput" accept=".epub">
 
-  <div class="opt">
-    <input type="checkbox" id="optSplit" checked>
-    <div>
-      <label for="optSplit">แยกบทตาม Heading 1</label>
-      <div class="desc">แก้ปัญหา status bar ไม่ขึ้นชื่อ chapter เพราะทุกบทถูกรวมในไฟล์เดียว</div>
-    </div>
-  </div>
+<div class="opt"><input type="checkbox" id="optText" checked><div>
+<label for="optText">ตัวหนา / ตัวเอียง / หนาเอียง</label>
+<div class="desc">แปลงค่าจาก CSS class ของ Google Docs เป็นแท็ก b, i, u, s, sup, sub ให้ตรง ๆ</div></div></div>
 
-  <div class="opt">
-    <input type="checkbox" id="optBoldItalic" checked>
-    <div>
-      <label for="optBoldItalic">แก้การจัดรูปแบบข้อความไม่แสดงผล</label>
-      <div class="desc">Google Docs มักใส่ตัวหนา/เอียง/ขีดเส้นใต้/ขีดฆ่า/ตัวยก-ตัวห้อย/จัดกึ่งกลาง-ซ้าย-ขวา/ย่อหน้า/ระยะห่างก่อน-หลังย่อหน้า/ระยะห่างระหว่างบรรทัด ผ่าน CSS class ซึ่งรีดเดอร์บางตัวอ่านไม่ได้ เครื่องมือนี้แปลงกลับเป็นแท็ก/attribute/inline style ตรง ๆ ให้ทั้งหมด</div>
-    </div>
-  </div>
+<div class="opt"><input type="checkbox" id="optPara" checked><div>
+<label for="optPara">การจัดย่อหน้า</label>
+<div class="desc">จัดชิดซ้าย/กลาง/ขวา การเยื้อง ระยะห่างก่อน-หลังย่อหน้า ระยะห่างบรรทัด แปลงเป็น inline style</div></div></div>
 
-  <div class="opt">
-    <input type="checkbox" id="optCover">
-    <div>
-      <label for="optCover">เปลี่ยนปกหนังสือ</label>
-      <div class="desc">อัปโหลดรูปปกใหม่ (jpg/png) จะเข้าไปแทนที่ปกเดิมใน epub</div>
-      <input type="file" id="coverInput" accept="image/*" disabled>
-    </div>
-  </div>
+<div class="opt"><input type="checkbox" id="optSplit" checked><div>
+<label for="optSplit">แยกบทตามหัวข้อ (Heading)</label>
+<div class="desc">ให้ status bar แสดงชื่อบท ถ้าเจอหัวข้อไม่ถึง 2 อันจะไม่แยก</div>
+<select id="splitLevel" class="sub">
+<option value="h1">แยกที่ Heading 1</option>
+<option value="h1,h2">แยกที่ Heading 1 และ 2</option>
+<option value="h1,h2,h3">แยกที่ Heading 1, 2 และ 3</option>
+</select></div></div>
 
-  <div class="opt">
-    <input type="checkbox" id="optCoverPage" checked>
-    <div>
-      <label for="optCoverPage">สร้างหน้าปกให้เป็นหน้าแรกเวลาเปิดอ่าน</label>
-      <div class="desc">epub จาก Google Docs มักไม่มีหน้าปกจริงในเล่ม มีแค่รูปสำหรับ thumbnail เท่านั้น ทำให้เปิดอ่านแล้วไม่เห็นปก ตัวเลือกนี้จะสร้างหน้าปกจริงให้ (ข้ามถ้าเจอว่ามีอยู่แล้ว)</div>
-    </div>
-  </div>
+<div class="opt"><input type="checkbox" id="optCover"><div>
+<label for="optCover">เปลี่ยนปกหนังสือ</label>
+<div class="desc">รูป jpg/png ที่เลือกจะแทนปกเดิม ถ้าไม่มีปกเดิมจะเพิ่มให้</div>
+<input type="file" id="coverInput" accept="image/*" disabled>
+<label class="desc"><input type="checkbox" id="optResize" checked disabled> ย่อรูปไม่เกิน 480×800 และบันทึกเป็น JPG (แนะนำ ช่วยให้เครื่องเปิดได้ลื่น)</label>
+</div></div>
 
-  <div class="opt">
-    <input type="checkbox" id="optMeta">
-    <div>
-      <label for="optMeta">แก้ไขชื่อเรื่อง / ผู้แต่ง</label>
-      <div class="desc">ค่าปัจจุบันของไฟล์จะขึ้นให้อัตโนมัติเมื่อเลือกไฟล์ แก้ตรงไหนก็เปลี่ยนตรงนั้น เว้นว่างไว้ = ไม่เปลี่ยน</div>
-      <div style="margin-top:8px;">
-        <label style="font-weight:normal; display:block; font-size:0.9em; margin-bottom:2px;">ชื่อเรื่อง</label>
-        <input type="text" id="titleInput" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
-      </div>
-      <div style="margin-top:8px;">
-        <label style="font-weight:normal; display:block; font-size:0.9em; margin-bottom:2px;">ผู้แต่ง</label>
-        <input type="text" id="authorInput" disabled style="width:100%; padding:8px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
-      </div>
-    </div>
-  </div>
+<div class="opt"><input type="checkbox" id="optCoverPage"><div>
+<label for="optCoverPage">แสดงปกเป็นหน้าแรกของเล่ม</label>
+<div class="desc">epub จาก Google Docs มักมีรูปปกแต่ไม่มีหน้าปก ตัวเลือกนี้สร้างหน้าปกจริงให้ (ข้ามถ้ามีอยู่แล้ว)</div></div></div>
 
-  <button id="processBtn" disabled>ประมวลผล</button>
-  <div id="log"></div>
-  <div id="downloadArea"></div>
+<div class="opt"><input type="checkbox" id="optMeta"><div>
+<label for="optMeta">แก้ชื่อหนังสือ / ผู้แต่ง</label>
+<div class="desc">ค่าปัจจุบันขึ้นให้อัตโนมัติเมื่อเลือกไฟล์</div>
+<input type="text" id="titleInput" class="sub" placeholder="ชื่อหนังสือ" disabled>
+<input type="text" id="authorInput" class="sub" placeholder="ผู้แต่ง" disabled>
+</div></div>
+
+<button id="processBtn" disabled>ประมวลผล</button>
+<div id="log"></div>
+<div id="downloadArea"></div>
 </div>
 
-<p class="note">หมายเหตุ: การแยกบทจะแยกเฉพาะไฟล์เนื้อหาที่มี Heading 1 ตั้งแต่ 2 อันขึ้นไป ไฟล์ที่มีไม่ถึงจะถูกปล่อยไว้เหมือนเดิม (แต่ยังแก้ตัวหนา/เอียงได้ตามปกติ)</p>
-
 <script>
-const fileInput = document.getElementById('fileInput');
-const coverCheckbox = document.getElementById('optCover');
-const coverInput = document.getElementById('coverInput');
-const metaCheckbox = document.getElementById('optMeta');
-const titleInput = document.getElementById('titleInput');
-const authorInput = document.getElementById('authorInput');
-const processBtn = document.getElementById('processBtn');
-const logEl = document.getElementById('log');
-const downloadArea = document.getElementById('downloadArea');
-let selectedFile = null;
+const $ = id => document.getElementById(id);
+const NS_X = 'http://www.w3.org/1999/xhtml', NS_DC = 'http://purl.org/dc/elements/1.1/';
+const DECL = '<?xml version="1.0" encoding="utf-8"?>\n';
+const MT = {jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif', webp:'image/webp'};
+const BLOCK = ['p','div','h1','h2','h3','h4','h5','h6','li','blockquote'];
+const NOWRAP = ['b','strong','i','em','u','s','strike','sup','sub','h1','h2','h3','br','img'];
+const esc = s => String(s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
+const dirOf = p => p.includes('/') ? p.slice(0, p.lastIndexOf('/') + 1) : '';
+const stripDecl = s => s.replace(/^\s*(<\?xml[^?]*\?>\s*)+/i, '');
+const serDoc = d => DECL + stripDecl(new XMLSerializer().serializeToString(d));
+const serNode = n => new XMLSerializer().serializeToString(n).split(' xmlns="' + NS_X + '"').join('');
+const log = m => { $('log').textContent += m + '\n'; $('log').scrollTop = 1e9; };
 
-fileInput.addEventListener('change', async () => {
-  selectedFile = fileInput.files[0] || null;
-  processBtn.disabled = !selectedFile;
-  logEl.textContent = '';
-  downloadArea.innerHTML = '';
-  titleInput.value = '';
-  authorInput.value = '';
-  if (selectedFile) await loadMetadataPreview(selectedFile);
-});
-
-coverCheckbox.addEventListener('change', () => {
-  coverInput.disabled = !coverCheckbox.checked;
-});
-
-metaCheckbox.addEventListener('change', () => {
-  titleInput.disabled = !metaCheckbox.checked;
-  authorInput.disabled = !metaCheckbox.checked;
-});
-
-async function loadMetadataPreview(file) {
+let selected = null;
+$('fileInput').addEventListener('change', async () => {
+  selected = $('fileInput').files[0] || null;
+  $('processBtn').disabled = !selected;
+  $('log').textContent = ''; $('downloadArea').innerHTML = '';
+  $('titleInput').value = ''; $('authorInput').value = '';
+  if (!selected) return;
   try {
-    const zip = await JSZip.loadAsync(file);
-    const parser = new DOMParser();
-    const containerXml = await zip.file('META-INF/container.xml').async('string');
-    const containerDoc = parser.parseFromString(containerXml, 'application/xml');
-    const opfPath = containerDoc.querySelector('rootfile').getAttribute('full-path');
-    const opfText = await zip.file(opfPath).async('string');
-    const opfDoc = parser.parseFromString(opfText, 'application/xml');
-    const DC_NS = 'http://purl.org/dc/elements/1.1/';
-    const titleEl = opfDoc.getElementsByTagNameNS(DC_NS, 'title')[0];
-    const creatorEl = opfDoc.getElementsByTagNameNS(DC_NS, 'creator')[0];
-    titleInput.value = titleEl ? titleEl.textContent.trim() : '';
-    authorInput.value = creatorEl ? creatorEl.textContent.trim() : '';
-  } catch (e) {
-    // preview is best-effort; ignore failures here, real errors surface during processing
-  }
-}
-
-function setDcMetadata(opfDoc, localName, value) {
-  const DC_NS = 'http://purl.org/dc/elements/1.1/';
-  const metadataEl = opfDoc.querySelector('metadata');
-  const existing = metadataEl.getElementsByTagNameNS(DC_NS, localName)[0];
-  if (existing) {
-    existing.textContent = value;
-  } else {
-    const newEl = opfDoc.createElementNS(DC_NS, 'dc:' + localName);
-    newEl.textContent = value;
-    metadataEl.appendChild(newEl);
-  }
-}
-
-function log(msg) {
-  logEl.textContent += msg + '\n';
-  logEl.scrollTop = logEl.scrollHeight;
-}
-
-processBtn.addEventListener('click', async () => {
-  if (!selectedFile) return;
-  processBtn.disabled = true;
-  logEl.textContent = '';
-  downloadArea.innerHTML = '';
+    const zip = await JSZip.loadAsync(selected), P = new DOMParser();
+    const c = P.parseFromString(await zip.file('META-INF/container.xml').async('string'), 'application/xml');
+    const opf = P.parseFromString(await zip.file(c.querySelector('rootfile').getAttribute('full-path')).async('string'), 'application/xml');
+    const t = opf.getElementsByTagNameNS(NS_DC, 'title')[0], a = opf.getElementsByTagNameNS(NS_DC, 'creator')[0];
+    $('titleInput').value = t ? t.textContent.trim() : '';
+    $('authorInput').value = a ? a.textContent.trim() : '';
+  } catch (e) {}
+});
+$('optCover').addEventListener('change', e => { $('coverInput').disabled = $('optResize').disabled = !e.target.checked; });
+$('optMeta').addEventListener('change', e => { $('titleInput').disabled = $('authorInput').disabled = !e.target.checked; });
+$('processBtn').addEventListener('click', async () => {
+  $('processBtn').disabled = true; $('log').textContent = ''; $('downloadArea').innerHTML = '';
   try {
-    await processEpub(selectedFile, {
-      split: document.getElementById('optSplit').checked,
-      boldItalic: document.getElementById('optBoldItalic').checked,
-      cover: coverCheckbox.checked ? (coverInput.files[0] || null) : null,
-      coverPage: document.getElementById('optCoverPage').checked,
-      newTitle: metaCheckbox.checked ? titleInput.value.trim() : '',
-      newAuthor: metaCheckbox.checked ? authorInput.value.trim() : ''
+    await processEpub(selected, {
+      text: $('optText').checked, para: $('optPara').checked,
+      split: $('optSplit').checked, tags: $('splitLevel').value.split(','),
+      cover: $('optCover').checked ? ($('coverInput').files[0] || null) : null,
+      resize: $('optResize').checked, coverPage: $('optCoverPage').checked,
+      title: $('optMeta').checked ? $('titleInput').value.trim() : '',
+      author: $('optMeta').checked ? $('authorInput').value.trim() : ''
     });
-  } catch (err) {
-    log('เกิดข้อผิดพลาด: ' + err.message);
-    console.error(err);
-  }
-  processBtn.disabled = false;
+  } catch (e) { log('เกิดข้อผิดพลาด: ' + e.message); console.error(e); }
+  $('processBtn').disabled = false;
 });
 
-function escapeXml(str) {
-  return String(str).replace(/[<>&'"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+function parseDoc(text) {
+  const P = new DOMParser();
+  let d = P.parseFromString(text, 'application/xhtml+xml');
+  if (d.querySelector('parsererror')) d = P.parseFromString(text, 'text/html');
+  return d;
 }
 
-function resolvePath(baseDir, relHref) {
-  if (/^https?:\/\//i.test(relHref)) return null;
-  if (relHref.startsWith('/')) relHref = relHref.slice(1);
-  const baseParts = baseDir.split('/').filter(Boolean);
-  const relParts = relHref.split('/');
-  relParts.forEach(part => {
-    if (part === '.' || part === '') return;
-    else if (part === '..') baseParts.pop();
-    else baseParts.push(part);
-  });
-  return baseParts.join('/');
+function resolve(base, rel) {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(rel)) return null;
+  const parts = base.split('/').filter(Boolean);
+  rel.split('/').forEach(p => { if (p === '..') parts.pop(); else if (p && p !== '.') parts.push(p); });
+  return parts.join('/');
 }
 
-function parseCssRules(cssText) {
-  const rules = {};
-  cssText = cssText.replace(/\/\*[\s\S]*?\*\//g, '');
-  cssText.split('}').forEach(block => {
-    const parts = block.split('{');
-    if (parts.length < 2) return;
-    const selectors = parts[0].split(',').map(s => s.trim()).filter(Boolean);
-    const decl = parts[1];
+async function collectCss(doc, zip, dir) {
+  let css = '';
+  doc.querySelectorAll('style').forEach(s => css += s.textContent + '\n');
+  for (const l of Array.from(doc.querySelectorAll('link[rel="stylesheet"]'))) {
+    const p = resolve(dir, l.getAttribute('href') || ''), f = p && zip.file(p);
+    if (f) css += await f.async('string') + '\n';
+  }
+  return css;
+}
 
-    const bold = /font-weight\s*:\s*(bold|[6-9]00)/i.test(decl);
-    const italic = /font-style\s*:\s*italic/i.test(decl);
-    const alignMatch = decl.match(/text-align\s*:\s*(left|right|center|justify)/i);
-    const align = alignMatch ? alignMatch[1].toLowerCase() : null;
-    const decoMatch = decl.match(/text-decoration(?:-line)?\s*:\s*([^;]+)/i);
-    const decoVal = decoMatch ? decoMatch[1].toLowerCase() : '';
-    const underline = /underline/.test(decoVal);
-    const strike = /line-through/.test(decoVal);
-    const vAlignMatch = decl.match(/vertical-align\s*:\s*(super|sub)/i);
-    const vAlign = vAlignMatch ? vAlignMatch[1].toLowerCase() : null;
-    const textIndentMatch = decl.match(/text-indent\s*:\s*(-?[\d.]+[a-z%]*)/i);
-    const marginLeftMatch = decl.match(/margin-left\s*:\s*(-?[\d.]+[a-z%]*)/i);
-    const marginTopMatch = decl.match(/(?:margin|padding)-(?:top|before)\s*:\s*(-?[\d.]+[a-z%]*)/i);
-    const marginBottomMatch = decl.match(/(?:margin|padding)-(?:bottom|after)\s*:\s*(-?[\d.]+[a-z%]*)/i);
-    const lineHeightMatch = decl.match(/line-height\s*:\s*([\d.]+%?[a-z]*)/i);
-    const heightMatch = decl.match(/(?<!-)height\s*:\s*([\d.]+[a-z%]*)/i);
-
-    if (!bold && !italic && !align && !underline && !strike && !vAlign && !textIndentMatch && !marginLeftMatch && !marginTopMatch && !marginBottomMatch && !lineHeightMatch && !heightMatch) return;
-
-    selectors.forEach(sel => {
-      const classMatches = sel.match(/\.[a-zA-Z0-9_-]+/g);
-      if (classMatches) {
-        classMatches.forEach(cm => {
-          const cls = cm.slice(1);
-          if (!rules[cls]) rules[cls] = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null, height: null };
-          if (bold) rules[cls].bold = true;
-          if (italic) rules[cls].italic = true;
-          if (align) rules[cls].align = align;
-          if (underline) rules[cls].underline = true;
-          if (strike) rules[cls].strike = true;
-          if (vAlign) rules[cls].vAlign = vAlign;
-          if (textIndentMatch) rules[cls].textIndent = textIndentMatch[1];
-          if (marginLeftMatch) rules[cls].marginLeft = marginLeftMatch[1];
-          if (marginTopMatch) rules[cls].marginTop = marginTopMatch[1];
-          if (marginBottomMatch) rules[cls].marginBottom = marginBottomMatch[1];
-          if (lineHeightMatch) rules[cls].lineHeight = lineHeightMatch[1];
-          if (heightMatch) rules[cls].height = heightMatch[1];
-        });
-        return;
-      }
-      // bare tag selector fallback, e.g. plain "p" or "li" rules (Google Docs default paragraph spacing)
-      if (/^[a-zA-Z][a-zA-Z0-9]*$/.test(sel)) {
-        const key = 'tag:' + sel.toLowerCase();
-        if (!rules[key]) rules[key] = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null, height: null };
-        if (bold) rules[key].bold = true;
-        if (italic) rules[key].italic = true;
-        if (align) rules[key].align = align;
-        if (underline) rules[key].underline = true;
-        if (strike) rules[key].strike = true;
-        if (vAlign) rules[key].vAlign = vAlign;
-        if (textIndentMatch) rules[key].textIndent = textIndentMatch[1];
-        if (marginLeftMatch) rules[key].marginLeft = marginLeftMatch[1];
-        if (marginTopMatch) rules[key].marginTop = marginTopMatch[1];
-        if (marginBottomMatch) rules[key].marginBottom = marginBottomMatch[1];
-        if (lineHeightMatch) rules[key].lineHeight = lineHeightMatch[1];
-        if (heightMatch) rules[key].height = heightMatch[1];
-      }
+function parseCss(css) {
+  const R = {};
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '').replace(/@import[^;]*;/g, '');
+  css.split('}').forEach(blk => {
+    const k = blk.indexOf('{'); if (k < 0) return;
+    const d = blk.slice(k + 1);
+    const g = re => { const m = d.match(re); return m ? m[1].trim().toLowerCase() : null; };
+    const deco = g(/text-decoration(?:-line)?\s*:\s*([^;]+)/i) || '';
+    const p = {};
+    if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(d)) p.b = 1;
+    if (/font-style\s*:\s*italic/i.test(d)) p.i = 1;
+    if (deco.includes('underline')) p.u = 1;
+    if (deco.includes('line-through')) p.s = 1;
+    const va = g(/vertical-align\s*:\s*(super|sub)/i); if (va) p.va = va;
+    const al = g(/text-align\s*:\s*(left|right|center|justify)/i); if (al) p.al = al;
+    const ti = g(/text-indent\s*:\s*(-?[\d.]+[a-z%]*)/i); if (ti) p.ti = ti;
+    const ml = g(/margin-left\s*:\s*(-?[\d.]+[a-z%]*)/i); if (ml) p.ml = ml;
+    const mt = g(/(?:margin|padding)-top\s*:\s*(-?[\d.]+[a-z%]*)/i); if (mt) p.mt = mt;
+    const mb = g(/(?:margin|padding)-bottom\s*:\s*(-?[\d.]+[a-z%]*)/i); if (mb) p.mb = mb;
+    const lh = g(/line-height\s*:\s*([\d.]+%?[a-z]*)/i); if (lh) p.lh = lh;
+    const h = g(/(?<![-\w])height\s*:\s*([\d.]+[a-z%]*)/i); if (h) p.h = h;
+    if (!Object.keys(p).length) return;
+    blk.slice(0, k).split(',').forEach(s => {
+      s = s.trim(); let key = null, m;
+      if ((m = s.match(/^\.([\w-]+)$/))) key = m[1];
+      else if (/^[a-z][a-z0-9]*$/i.test(s)) key = 'tag:' + s.toLowerCase();
+      if (key) R[key] = Object.assign(R[key] || {}, p);
     });
   });
-  return rules;
+  return R;
 }
 
-async function collectCss(zip, htmlDoc, contentDir) {
-  let cssText = '';
-  htmlDoc.querySelectorAll('style').forEach(s => { cssText += s.textContent + '\n'; });
-  const links = Array.from(htmlDoc.querySelectorAll('link[rel="stylesheet"]'));
-  for (const link of links) {
-    const href = link.getAttribute('href');
-    if (!href) continue;
-    const resolved = resolvePath(contentDir, href);
-    if (!resolved) continue;
-    const f = zip.file(resolved);
-    if (f) cssText += (await f.async('string')) + '\n';
-  }
-  return cssText;
+function addStyle(el, props) {
+  const st = el.getAttribute('style') || '';
+  const add = props.filter(x => !new RegExp('(^|;)\\s*' + x.split(':')[0] + '\\s*:', 'i').test(st));
+  if (add.length) el.setAttribute('style', (st ? st.replace(/;?\s*$/, ';') : '') + add.join(';'));
 }
 
-function applyBoldItalic(bodyEl, classRules) {
-  let count = 0;
-  const all = Array.from(bodyEl.querySelectorAll('*'));
-  all.forEach(el => {
-    const tag = el.tagName.toLowerCase();
-    const classes = (el.getAttribute('class') || '').split(/\s+/).filter(Boolean);
+function applyFormat(body, R, o) {
+  let n = 0;
+  const doc = body.ownerDocument;
+  Array.from(body.querySelectorAll('*')).forEach(el => {
+    const tag = el.localName.toLowerCase();
+    const r = Object.assign({}, R['tag:' + tag]);
+    (el.getAttribute('class') || '').split(/\s+/).forEach(c => { if (R[c]) Object.assign(r, R[c]); });
+    const st = el.getAttribute('style') || '';
+    if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(st)) r.b = 1;
+    if (/font-style\s*:\s*italic/i.test(st)) r.i = 1;
+    if (/text-decoration[^;]*underline/i.test(st)) r.u = 1;
+    if (/text-decoration[^;]*line-through/i.test(st)) r.s = 1;
+    const va = st.match(/vertical-align\s*:\s*(super|sub)/i); if (va) r.va = va[1].toLowerCase();
+    const al = st.match(/text-align\s*:\s*(left|right|center|justify)/i); if (al) r.al = al[1].toLowerCase();
 
-    const rule = { bold: false, italic: false, align: null, underline: false, strike: false, vAlign: null, textIndent: null, marginLeft: null, marginTop: null, marginBottom: null, lineHeight: null, height: null };
-    const tagDefault = classRules['tag:' + tag];
-    if (tagDefault) {
-      if (tagDefault.bold) rule.bold = true;
-      if (tagDefault.italic) rule.italic = true;
-      if (tagDefault.align) rule.align = tagDefault.align;
-      if (tagDefault.underline) rule.underline = true;
-      if (tagDefault.strike) rule.strike = true;
-      if (tagDefault.vAlign) rule.vAlign = tagDefault.vAlign;
-      if (tagDefault.textIndent) rule.textIndent = tagDefault.textIndent;
-      if (tagDefault.marginLeft) rule.marginLeft = tagDefault.marginLeft;
-      if (tagDefault.marginTop) rule.marginTop = tagDefault.marginTop;
-      if (tagDefault.marginBottom) rule.marginBottom = tagDefault.marginBottom;
-      if (tagDefault.lineHeight) rule.lineHeight = tagDefault.lineHeight;
-      if (tagDefault.height) rule.height = tagDefault.height;
+    if (o.para && BLOCK.includes(tag)) {
+      const a = [];
+      if (r.al) { el.setAttribute('align', r.al); a.push('text-align:' + r.al); }
+      if (r.ti) a.push('text-indent:' + r.ti);
+      if (r.ml) a.push('margin-left:' + r.ml);
+      if (r.mt) a.push('margin-top:' + r.mt);
+      if (r.mb) a.push('margin-bottom:' + r.mb);
+      if (r.lh) a.push('line-height:' + r.lh);
+      if (r.h) a.push('height:' + r.h);
+      if (a.length) { addStyle(el, a); n++; }
     }
-    classes.forEach(c => {
-      const r = classRules[c];
-      if (!r) return;
-      if (r.bold) rule.bold = true;
-      if (r.italic) rule.italic = true;
-      if (r.align) rule.align = r.align;
-      if (r.underline) rule.underline = true;
-      if (r.strike) rule.strike = true;
-      if (r.vAlign) rule.vAlign = r.vAlign;
-      if (r.textIndent) rule.textIndent = r.textIndent;
-      if (r.marginLeft) rule.marginLeft = r.marginLeft;
-      if (r.marginTop) rule.marginTop = r.marginTop;
-      if (r.marginBottom) rule.marginBottom = r.marginBottom;
-      if (r.lineHeight) rule.lineHeight = r.lineHeight;
-      if (r.height) rule.height = r.height;
-    });
-
-    const styleAttr = el.getAttribute('style') || '';
-    if (/font-weight\s*:\s*(bold|[6-9]00)/i.test(styleAttr)) rule.bold = true;
-    if (/font-style\s*:\s*italic/i.test(styleAttr)) rule.italic = true;
-    const inlineAlignMatch = styleAttr.match(/text-align\s*:\s*(left|right|center|justify)/i);
-    if (inlineAlignMatch) rule.align = inlineAlignMatch[1].toLowerCase();
-    if (/text-decoration(?:-line)?\s*:[^;]*underline/i.test(styleAttr)) rule.underline = true;
-    if (/text-decoration(?:-line)?\s*:[^;]*line-through/i.test(styleAttr)) rule.strike = true;
-    const inlineVAlign = styleAttr.match(/vertical-align\s*:\s*(super|sub)/i);
-    if (inlineVAlign) rule.vAlign = inlineVAlign[1].toLowerCase();
-
-    // --- alignment: real attribute + inline style, on block-level elements (left included, so default is explicit too) ---
-    if (rule.align && tag !== 'span' && tag !== 'a' && tag !== 'b' && tag !== 'i' && tag !== 'u' && tag !== 's') {
-      el.setAttribute('align', rule.align);
-      if (!inlineAlignMatch) {
-        const merged = (styleAttr ? styleAttr.replace(/;?\s*$/, ';') : '') + 'text-align:' + rule.align;
-        el.setAttribute('style', merged);
-      }
-      count++;
+    if (o.text && !NOWRAP.includes(tag) && el.firstChild && (r.b || r.i || r.u || r.s || r.va)) {
+      let cur = el;
+      const wrap = t => {
+        const w = doc.createElementNS(NS_X, t);
+        while (cur.firstChild) w.appendChild(cur.firstChild);
+        cur.appendChild(w); cur = w;
+      };
+      if (r.b) wrap('b');
+      if (r.i) wrap('i');
+      if (r.u) wrap('u');
+      if (r.s) wrap('s');
+      if (r.va) wrap(r.va === 'super' ? 'sup' : 'sub');
+      n++;
     }
-
-    // --- paragraph spacing / indent: best-effort inline style on block containers ---
-    if (tag === 'p' || tag === 'div' || tag === 'blockquote' || tag === 'li') {
-      const spacingParts = [];
-      const currentStyle = el.getAttribute('style') || '';
-      if (rule.textIndent && !/text-indent/i.test(currentStyle)) spacingParts.push('text-indent:' + rule.textIndent);
-      if (rule.marginLeft && !/margin-left/i.test(currentStyle)) spacingParts.push('margin-left:' + rule.marginLeft);
-      if (rule.marginTop && !/margin-top/i.test(currentStyle)) spacingParts.push('margin-top:' + rule.marginTop);
-      if (rule.marginBottom && !/margin-bottom/i.test(currentStyle)) spacingParts.push('margin-bottom:' + rule.marginBottom);
-      if (rule.lineHeight && !/line-height/i.test(currentStyle)) spacingParts.push('line-height:' + rule.lineHeight);
-      if (rule.height && !/(?<!-)height\s*:/i.test(currentStyle)) spacingParts.push('height:' + rule.height);
-      if (spacingParts.length) {
-        const merged = (el.getAttribute('style') ? el.getAttribute('style').replace(/;?\s*$/, ';') : '') + spacingParts.join(';');
-        el.setAttribute('style', merged);
-        count++;
-      }
-    }
-
-    // --- character-level: bold / italic / underline / strikethrough / superscript / subscript ---
-    if (tag === 'b' || tag === 'strong' || tag === 'i' || tag === 'em' || tag === 'u' || tag === 's' || tag === 'strike' ||
-        tag === 'sup' || tag === 'sub' || tag === 'h1' || tag === 'h2' || tag === 'h3') return;
-    if (!rule.bold && !rule.italic && !rule.underline && !rule.strike && !rule.vAlign) return;
-    if (!el.firstChild) return;
-
-    let target = el;
-    const wrap = (tagName) => {
-      const w = el.ownerDocument.createElement(tagName);
-      while (target.firstChild) w.appendChild(target.firstChild);
-      target.appendChild(w);
-      target = w;
-    };
-    if (rule.bold) wrap('b');
-    if (rule.italic) wrap('i');
-    if (rule.underline) wrap('u');
-    if (rule.strike) wrap('s');
-    if (rule.vAlign === 'super') wrap('sup');
-    else if (rule.vAlign === 'sub') wrap('sub');
-    count++;
   });
-  return count;
+  return n;
 }
 
-function findExistingCoverPage(manifestMap, spineOrderIds) {
-  for (const id of spineOrderIds) {
-    const it = manifestMap[id];
-    if (it && it.mediaType === 'application/xhtml+xml' && /cover/i.test(it.href)) return it;
+function segment(body, tags) {
+  const segs = []; let cur = null;
+  Array.from(body.children).forEach(n => {
+    if (tags.includes(n.localName.toLowerCase())) { cur = {title: n.textContent.trim(), nodes: [n]}; segs.push(cur); }
+    else { if (!cur) { cur = {title: null, nodes: []}; segs.push(cur); } cur.nodes.push(n); }
+  });
+  if (segs.length && segs[0].title === null) {
+    const pre = segs.shift();
+    if (segs.length) segs[0].nodes = pre.nodes.concat(segs[0].nodes); else segs.push(pre);
   }
-  return null;
+  return segs;
 }
 
-function ensureCoverPage(zip, opfDoc, manifestMap, newSpineOrder, opfDir) {
-  const coverImgItem = Object.values(manifestMap).find(it => it.properties && it.properties.includes('cover-image'));
-  if (!coverImgItem) return 'ไม่พบรูปปกในไฟล์ ข้ามการสร้างหน้าปก';
-
-  const existing = findExistingCoverPage(manifestMap, newSpineOrder);
-  if (existing) return 'พบหน้าปกอยู่แล้ว: ' + existing.href;
-
-  const newId = 'cover-page-generated';
-  const newHref = 'cover-page.xhtml';
-  const xhtml = '<?xml version="1.0" encoding="utf-8"?>\n' +
-    '<html xmlns="http://www.w3.org/1999/xhtml">\n' +
-    '<head><meta charset="utf-8"/><title>Cover</title>' +
-    '<style>html,body{margin:0;padding:0;text-align:center;}img{max-width:100%;max-height:100vh;}</style></head>\n' +
-    '<body><div><img src="' + coverImgItem.href + '" alt="Cover"/></div></body></html>';
-  zip.file(opfDir + newHref, xhtml);
-  manifestMap[newId] = { id: newId, href: newHref, mediaType: 'application/xhtml+xml', properties: '' };
-  newSpineOrder.unshift(newId);
-
-  const packageEl = opfDoc.documentElement;
-  let guideEl = opfDoc.querySelector('guide');
-  if (!guideEl) {
-    guideEl = opfDoc.createElement('guide');
-    packageEl.appendChild(guideEl);
+async function prepCover(file, resize) {
+  if (!resize) {
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    return {data: new Uint8Array(await file.arrayBuffer()), ext, type: MT[ext] || 'image/jpeg'};
   }
-  let refEl = Array.from(guideEl.querySelectorAll('reference')).find(r => r.getAttribute('type') === 'cover');
-  if (!refEl) {
-    refEl = opfDoc.createElement('reference');
-    refEl.setAttribute('type', 'cover');
-    refEl.setAttribute('title', 'Cover');
-    guideEl.appendChild(refEl);
-  }
-  refEl.setAttribute('href', newHref);
-
-  return 'สร้างหน้าปกใหม่: ' + newHref;
+  const bmp = await createImageBitmap(file);
+  const s = Math.min(480 / bmp.width, 800 / bmp.height, 1);
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(bmp, 0, 0, c.width, c.height);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+  log('ย่อรูปปกเป็น ' + c.width + '×' + c.height + ' (' + Math.round(blob.size / 1024) + ' KB)');
+  return {data: new Uint8Array(await blob.arrayBuffer()), ext: 'jpg', type: 'image/jpeg'};
 }
 
-async function replaceCover(zip, opfDoc, manifestMap, opfDir, coverFile) {
-  const ext = (coverFile.name.split('.').pop() || 'jpg').toLowerCase();
-  const mediaTypeMap = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
-  const mediaType = mediaTypeMap[ext] || 'image/jpeg';
-  const arrayBuf = await coverFile.arrayBuffer();
-
-  let coverItem = Object.values(manifestMap).find(it => it.properties && it.properties.includes('cover-image'));
-  if (!coverItem) {
-    const metaCover = opfDoc.querySelector('metadata meta[name="cover"]');
-    if (metaCover) {
-      const coverId = metaCover.getAttribute('content');
-      coverItem = manifestMap[coverId];
-    }
-  }
-
-  if (coverItem) {
-    const oldPath = opfDir + coverItem.href;
-    zip.remove(oldPath);
-    const newHref = coverItem.href.replace(/\.[^.]+$/, '.' + ext);
-    zip.file(opfDir + newHref, arrayBuf);
-    coverItem.href = newHref;
-    coverItem.mediaType = mediaType;
-    if (!coverItem.properties.includes('cover-image')) {
-      coverItem.properties = (coverItem.properties + ' cover-image').trim();
-    }
-    return 'แทนที่ปกเดิม: ' + newHref;
-  } else {
-    const newId = 'cover-image-new';
-    const newHref = 'cover-new.' + ext;
-    zip.file(opfDir + newHref, arrayBuf);
-    manifestMap[newId] = { id: newId, href: newHref, mediaType, properties: 'cover-image' };
-    let metadataEl = opfDoc.querySelector('metadata');
-    const metaEl = opfDoc.createElement('meta');
-    metaEl.setAttribute('name', 'cover');
-    metaEl.setAttribute('content', newId);
-    metadataEl.appendChild(metaEl);
-    return 'ไม่พบปกเดิม สร้างใหม่เป็น: ' + newHref;
-  }
-}
-
-async function processEpub(file, opts) {
+async function processEpub(file, o) {
   log('กำลังเปิดไฟล์ epub...');
-  const zip = await JSZip.loadAsync(file);
-  const parser = new DOMParser();
-  const serializer = new XMLSerializer();
-
-  const containerFile = zip.file('META-INF/container.xml');
-  if (!containerFile) throw new Error('ไม่พบ META-INF/container.xml ไฟล์นี้อาจไม่ใช่ epub ที่ถูกต้อง');
-  const containerXml = await containerFile.async('string');
-  const containerDoc = parser.parseFromString(containerXml, 'application/xml');
-  const opfPath = containerDoc.querySelector('rootfile').getAttribute('full-path');
-  const opfDir = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/') + 1) : '';
+  const zip = await JSZip.loadAsync(file), P = new DOMParser();
+  const getF = p => { try { return zip.file(p) || zip.file(decodeURIComponent(p)); } catch (e) { return null; } };
+  const cf = zip.file('META-INF/container.xml');
+  if (!cf) throw new Error('ไม่พบ META-INF/container.xml ไฟล์นี้อาจไม่ใช่ epub');
+  const opfPath = P.parseFromString(await cf.async('string'), 'application/xml').querySelector('rootfile').getAttribute('full-path');
+  const opfDir = dirOf(opfPath);
+  const opf = P.parseFromString(await zip.file(opfPath).async('string'), 'application/xml');
+  const manifest = opf.querySelector('manifest'), spine = opf.querySelector('spine'), metadata = opf.querySelector('metadata');
+  if (!manifest || !spine) throw new Error('content.opf ไม่มี manifest หรือ spine');
+  const OPFNS = opf.documentElement.namespaceURI;
   log('พบ content.opf ที่: ' + opfPath);
 
-  const opfText = await zip.file(opfPath).async('string');
-  const opfDoc = parser.parseFromString(opfText, 'application/xml');
-  const manifestEl = opfDoc.querySelector('manifest');
-  const spineEl = opfDoc.querySelector('spine');
-  if (!manifestEl || !spineEl) throw new Error('content.opf ไม่มี manifest หรือ spine ที่ถูกต้อง');
+  const items = () => Array.from(manifest.querySelectorAll('item'));
+  const byId = id => items().find(i => i.getAttribute('id') === id);
+  const mk = (tag, attrs, parent) => {
+    const e = opf.createElementNS(OPFNS, tag);
+    Object.keys(attrs).forEach(k => { if (attrs[k]) e.setAttribute(k, attrs[k]); });
+    parent.appendChild(e); return e;
+  };
+  const findCover = () => items().find(i => (i.getAttribute('properties') || '').split(/\s+/).includes('cover-image')) ||
+    (() => { const m = opf.querySelector('metadata meta[name="cover"]'); return m && byId(m.getAttribute('content')); })();
 
-  const manifestMap = {};
-  manifestEl.querySelectorAll('item').forEach(it => {
-    manifestMap[it.getAttribute('id')] = {
-      id: it.getAttribute('id'),
-      href: it.getAttribute('href'),
-      mediaType: it.getAttribute('media-type'),
-      properties: it.getAttribute('properties') || ''
-    };
-  });
+  // 1) format + split
+  const order = [], toc = [];
+  let formatted = 0, parts = 0;
+  for (const ref of Array.from(spine.querySelectorAll('itemref'))) {
+    const id = ref.getAttribute('idref'), it = byId(id);
+    if (!it) continue;
+    const href = it.getAttribute('href'), f = getF(opfDir + href);
+    const isNav = (it.getAttribute('properties') || '').split(/\s+/).includes('nav');
+    if (!/html/.test(it.getAttribute('media-type') || '') || !f || isNav) { order.push(id); continue; }
+    const path = f.name, doc = parseDoc(await f.async('string'));
+    const body = doc.body || doc.querySelector('body');
+    if (!body) { order.push(id); continue; }
+    if (o.text || o.para) formatted += applyFormat(body, parseCss(await collectCss(doc, zip, dirOf(path))), o);
+    const segs = o.split ? segment(body, o.tags) : [];
 
-  const originalSpineOrder = Array.from(spineEl.querySelectorAll('itemref')).map(ir => ir.getAttribute('idref'));
-  const newSpineOrder = [];
-  const tocEntries = [];
-  let splitFilesCreated = 0;
-  let boldItalicFixCount = 0;
-
-  for (const idref of originalSpineOrder) {
-    const item = manifestMap[idref];
-    if (!item) continue;
-    const isHtml = item.mediaType === 'application/xhtml+xml' || item.mediaType === 'text/html';
-    if (!isHtml) { newSpineOrder.push(item.id); continue; }
-
-    const fullHref = opfDir + item.href;
-    const contentFile = zip.file(fullHref);
-    if (!contentFile) { newSpineOrder.push(item.id); continue; }
-
-    const htmlText = await contentFile.async('string');
-    let htmlDoc;
-    try {
-      htmlDoc = parser.parseFromString(htmlText, 'application/xhtml+xml');
-      if (htmlDoc.querySelector('parsererror')) throw new Error('xml parse error');
-    } catch (e) {
-      htmlDoc = parser.parseFromString(htmlText, 'text/html');
-    }
-    const bodyEl = htmlDoc.body || htmlDoc.querySelector('body');
-    const contentDir = fullHref.includes('/') ? fullHref.substring(0, fullHref.lastIndexOf('/') + 1) : '';
-
-    if (opts.boldItalic && bodyEl) {
-      const cssText = await collectCss(zip, htmlDoc, contentDir);
-      const classRules = parseCssRules(cssText);
-      boldItalicFixCount += applyBoldItalic(bodyEl, classRules);
-    }
-
-    const h1s = bodyEl ? Array.from(bodyEl.querySelectorAll('h1')) : [];
-
-    if (!opts.split || h1s.length < 2) {
-      const newXhtml = '<?xml version="1.0" encoding="utf-8"?>\n' + serializer.serializeToString(htmlDoc);
-      zip.file(fullHref, newXhtml);
-      newSpineOrder.push(item.id);
-      let title = h1s.length >= 1 ? h1s[0].textContent.trim() : null;
-      if (!title) {
-        const titleTag = htmlDoc.querySelector('title');
-        title = titleTag ? titleTag.textContent.trim() : item.href;
-      }
-      tocEntries.push({ href: item.href, title });
+    if (segs.length < 2) {
+      zip.file(path, serDoc(doc));
+      const h = body.querySelector('h1,h2,h3'), t = doc.querySelector('title');
+      toc.push({href, title: (h && h.textContent.trim()) || (t && t.textContent.trim()) || href});
+      order.push(id);
       continue;
     }
-
-    log('กำลังแยกไฟล์ ' + item.href + ' — พบ ' + h1s.length + ' หัวข้อ (Heading 1)');
-    const children = Array.from(bodyEl.children);
-    const segments = [];
-    let current = null;
-    for (const node of children) {
-      if (node.tagName && node.tagName.toLowerCase() === 'h1') {
-        current = { title: node.textContent.trim(), nodes: [node] };
-        segments.push(current);
-      } else {
-        if (!current) { current = { title: null, nodes: [] }; segments.push(current); }
-        current.nodes.push(node);
-      }
-    }
-    if (segments.length && segments[0].title === null) {
-      const preface = segments.shift();
-      if (segments.length) segments[0].nodes = preface.nodes.concat(segments[0].nodes);
-      else segments.push(preface);
-    }
-
-    const htmlEl = htmlDoc.documentElement;
-    const htmlAttrs = Array.from(htmlEl.attributes).map(a => `${a.name}="${a.value}"`).join(' ');
-    const headStr = htmlDoc.head ? serializer.serializeToString(htmlDoc.head) : '<head><meta charset="utf-8"/></head>';
-    const relDir = contentDir.substring(opfDir.length);
-    const rawName = item.href.split('/').pop();
-    const baseNameNoExt = rawName.replace(/\.[^.]+$/, '');
-    const ext = (rawName.match(/\.[^.]+$/) || ['.xhtml'])[0];
-
-    segments.forEach((seg, idx) => {
-      const newId = item.id + '_p' + (idx + 1);
-      const newFileName = baseNameNoExt + '-part' + (idx + 1) + ext;
-      const newHref = relDir + newFileName;
-      const fullNewPath = opfDir + newHref;
-      const bodyContent = seg.nodes.map(n => serializer.serializeToString(n)).join('\n');
-      const newXhtml = '<?xml version="1.0" encoding="utf-8"?>\n' +
-        '<html ' + htmlAttrs + '>\n' + headStr + '\n<body>\n' + bodyContent + '\n</body>\n</html>';
-      zip.file(fullNewPath, newXhtml);
-      manifestMap[newId] = { id: newId, href: newHref, mediaType: 'application/xhtml+xml', properties: '' };
-      newSpineOrder.push(newId);
-      tocEntries.push({ href: newHref, title: seg.title || ('บทที่ ' + (idx + 1)) });
-      splitFilesCreated++;
+    const hd = doc.documentElement;
+    let attrs = Array.from(hd.attributes).map(a => a.name + '="' + esc(a.value) + '"').join(' ');
+    if (!/(^|\s)xmlns=/.test(attrs)) attrs = 'xmlns="' + NS_X + '" ' + attrs;
+    const headEl = doc.querySelector('head');
+    const headStr = headEl ? serNode(headEl) : '<head><meta charset="utf-8"/></head>';
+    const dir = dirOf(href), raw = href.split('/').pop();
+    const base = raw.replace(/\.[^.]+$/, ''), ext = (raw.match(/\.[^.]+$/) || ['.xhtml'])[0];
+    segs.forEach((seg, i) => {
+      const name = base + '-part' + (i + 1) + ext, nid = id + '_p' + (i + 1);
+      zip.file(opfDir + dir + name, DECL + '<html ' + attrs + '>\n' + headStr + '\n<body>\n' +
+        seg.nodes.map(serNode).join('\n') + '\n</body>\n</html>');
+      mk('item', {id: nid, href: dir + name, 'media-type': 'application/xhtml+xml'}, manifest);
+      order.push(nid);
+      toc.push({href: dir + name, title: seg.title || ('บทที่ ' + (i + 1))});
+      parts++;
     });
-
-    delete manifestMap[item.id];
-    zip.remove(fullHref);
+    it.remove(); zip.remove(path);
+    log('แยก ' + href + ' เป็น ' + segs.length + ' บท');
   }
+  if (o.text || o.para) log('แปลงรูปแบบข้อความ/ย่อหน้าแล้ว ' + formatted + ' จุด');
 
-  if (opts.boldItalic) log('แก้การจัดรูปแบบข้อความแล้ว ' + boldItalicFixCount + ' จุด');
-  if (opts.split) log('สร้างไฟล์บทใหม่ทั้งหมด ' + splitFilesCreated + ' ไฟล์');
-
-  if (opts.cover) {
-    const msg = await replaceCover(zip, opfDoc, manifestMap, opfDir, opts.cover);
-    log(msg);
-  }
-
-  if (opts.coverPage) {
-    const msg = ensureCoverPage(zip, opfDoc, manifestMap, newSpineOrder, opfDir);
-    log(msg);
-  }
-
-  if (opts.newTitle) {
-    setDcMetadata(opfDoc, 'title', opts.newTitle);
-    log('เปลี่ยนชื่อเรื่องเป็น: ' + opts.newTitle);
-  }
-  if (opts.newAuthor) {
-    setDcMetadata(opfDoc, 'creator', opts.newAuthor);
-    log('เปลี่ยนผู้แต่งเป็น: ' + opts.newAuthor);
-  }
-
-  Array.from(manifestEl.querySelectorAll('item')).forEach(n => n.remove());
-  Object.values(manifestMap).forEach(it => {
-    const el = opfDoc.createElement('item');
-    el.setAttribute('id', it.id);
-    el.setAttribute('href', it.href);
-    el.setAttribute('media-type', it.mediaType);
-    if (it.properties) el.setAttribute('properties', it.properties);
-    manifestEl.appendChild(el);
-  });
-
-  Array.from(spineEl.querySelectorAll('itemref')).forEach(n => n.remove());
-  newSpineOrder.forEach(id => {
-    const el = opfDoc.createElement('itemref');
-    el.setAttribute('idref', id);
-    spineEl.appendChild(el);
-  });
-
-  zip.file(opfPath, serializer.serializeToString(opfDoc));
-  log('อัปเดต content.opf เรียบร้อย');
-
-  if (opts.split) {
-    const ncxItem = Object.values(manifestMap).find(it => it.mediaType === 'application/x-dtbncx+xml');
-    if (ncxItem) {
-      const ncxPath = opfDir + ncxItem.href;
-      let bookTitle = 'Untitled';
-      const titleEl = opfDoc.querySelector('metadata title');
-      if (titleEl) bookTitle = titleEl.textContent.trim();
-      let navPoints = '';
-      tocEntries.forEach((entry, i) => {
-        navPoints += `<navPoint id="navpoint-${i + 1}" playOrder="${i + 1}"><navLabel><text>${escapeXml(entry.title)}</text></navLabel><content src="${escapeXml(entry.href)}"/></navPoint>\n`;
-      });
-      const ncxText = '<?xml version="1.0" encoding="UTF-8"?>\n' +
-        '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n' +
-        '<head><meta name="dtb:uid" content="split-epub"/></head>\n' +
-        `<docTitle><text>${escapeXml(bookTitle)}</text></docTitle>\n` +
-        '<navMap>\n' + navPoints + '</navMap>\n</ncx>';
-      zip.file(ncxPath, ncxText);
-      log('อัปเดต toc.ncx เรียบร้อย (' + tocEntries.length + ' รายการ)');
+  // 2) cover image
+  if (o.cover) {
+    const c = await prepCover(o.cover, o.resize);
+    let ci = findCover();
+    if (ci) {
+      const oldHref = ci.getAttribute('href');
+      const newHref = /\.[^./]+$/.test(oldHref) ? oldHref.replace(/\.[^./]+$/, '.' + c.ext) : oldHref + '.' + c.ext;
+      zip.remove(opfDir + oldHref); zip.file(opfDir + newHref, c.data);
+      ci.setAttribute('href', newHref); ci.setAttribute('media-type', c.type);
+      const pr = (ci.getAttribute('properties') || '').split(/\s+/).filter(Boolean);
+      if (!pr.includes('cover-image')) { pr.push('cover-image'); ci.setAttribute('properties', pr.join(' ')); }
+      if (oldHref !== newHref) {
+        for (const id of order) {
+          const it = byId(id);
+          if (it && /cover/i.test(it.getAttribute('href')) && /html/.test(it.getAttribute('media-type'))) {
+            const cf2 = getF(opfDir + it.getAttribute('href'));
+            if (cf2) zip.file(cf2.name, (await cf2.async('string')).split(oldHref).join(newHref));
+          }
+        }
+      }
+      log('แทนที่ปกเดิม: ' + newHref);
+    } else {
+      mk('item', {id: 'cover-image-new', href: 'cover-new.' + c.ext, 'media-type': c.type, properties: 'cover-image'}, manifest);
+      mk('meta', {name: 'cover', content: 'cover-image-new'}, metadata);
+      zip.file(opfDir + 'cover-new.' + c.ext, c.data);
+      log('ไม่พบปกเดิม เพิ่มปกใหม่: cover-new.' + c.ext);
     }
+  } else if (o.cover === null && $('optCover').checked) log('ยังไม่ได้เลือกรูปปก ข้ามขั้นตอนเปลี่ยนปก');
 
-    const navItem = Object.values(manifestMap).find(it => it.properties && it.properties.includes('nav'));
-    if (navItem) {
-      const navPath = opfDir + navItem.href;
-      let items = '';
-      tocEntries.forEach(entry => { items += `<li><a href="${escapeXml(entry.href)}">${escapeXml(entry.title)}</a></li>\n`; });
-      const navText = '<?xml version="1.0" encoding="utf-8"?>\n' +
-        '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">\n' +
-        '<head><meta charset="utf-8"/><title>Table of Contents</title></head>\n' +
-        '<body><nav epub:type="toc" id="toc"><ol>\n' + items + '</ol></nav></body></html>';
-      zip.file(navPath, navText);
-      log('อัปเดต nav.xhtml เรียบร้อย');
+  // 3) cover page as first page
+  if (o.coverPage) {
+    const exist = order.map(id => byId(id)).find(it => it && /cover/i.test(it.getAttribute('href')) && /html/.test(it.getAttribute('media-type')));
+    const ci = findCover();
+    if (exist) log('พบหน้าปกอยู่แล้ว: ' + exist.getAttribute('href'));
+    else if (!ci) log('ไม่พบรูปปกในไฟล์ ข้ามการสร้างหน้าปก');
+    else {
+      zip.file(opfDir + 'cover-page.xhtml', DECL + '<html xmlns="' + NS_X + '">\n<head><meta charset="utf-8"/><title>Cover</title>' +
+        '<style type="text/css">html,body{margin:0;padding:0;text-align:center}img{max-width:100%;max-height:100%}</style></head>\n' +
+        '<body><div><img src="' + esc(ci.getAttribute('href')) + '" alt="Cover"/></div></body>\n</html>');
+      mk('item', {id: 'cover-page-generated', href: 'cover-page.xhtml', 'media-type': 'application/xhtml+xml'}, manifest);
+      order.unshift('cover-page-generated');
+      let guide = opf.querySelector('guide');
+      if (!guide) guide = mk('guide', {}, opf.documentElement);
+      let ref = Array.from(guide.querySelectorAll('reference')).find(r => r.getAttribute('type') === 'cover');
+      if (!ref) ref = mk('reference', {type: 'cover', title: 'Cover'}, guide);
+      ref.setAttribute('href', 'cover-page.xhtml');
+      log('สร้างหน้าปกเป็นหน้าแรกแล้ว');
     }
   }
 
+  // 4) metadata
+  const setDc = (name, val) => {
+    let el = metadata.getElementsByTagNameNS(NS_DC, name)[0];
+    if (!el) { el = opf.createElementNS(NS_DC, 'dc:' + name); metadata.appendChild(el); }
+    el.textContent = val;
+    log('ตั้ง' + (name === 'title' ? 'ชื่อหนังสือ' : 'ผู้แต่ง') + 'เป็น: ' + val);
+  };
+  if (o.title) setDc('title', o.title);
+  if (o.author) setDc('creator', o.author);
+
+  // 5) spine + opf
+  Array.from(spine.querySelectorAll('itemref')).forEach(n => n.remove());
+  order.forEach(id => mk('itemref', {idref: id}, spine));
+  zip.file(opfPath, serDoc(opf));
+
+  // 6) table of contents (only needed when files were split)
+  if (parts) {
+    const navIt = items().find(i => (i.getAttribute('properties') || '').split(/\s+/).includes('nav'));
+    if (navIt) {
+      const nh = navIt.getAttribute('href'), nd = dirOf(nh), r = h => h.startsWith(nd) ? h.slice(nd.length) : h;
+      zip.file(opfDir + nh, DECL + '<html xmlns="' + NS_X + '" xmlns:epub="http://www.idpf.org/2007/ops">\n' +
+        '<head><meta charset="utf-8"/><title>Table of Contents</title></head>\n<body><nav epub:type="toc" id="toc"><ol>\n' +
+        toc.map(t => '<li><a href="' + esc(r(t.href)) + '">' + esc(t.title) + '</a></li>').join('\n') + '\n</ol></nav></body></html>');
+      log('อัปเดต nav.xhtml แล้ว');
+    }
+    const ncx = items().find(i => i.getAttribute('media-type') === 'application/x-dtbncx+xml');
+    if (ncx) {
+      const nh = ncx.getAttribute('href'), nd = dirOf(nh), r = h => h.startsWith(nd) ? h.slice(nd.length) : h;
+      const te = metadata.getElementsByTagNameNS(NS_DC, 'title')[0], ie = metadata.getElementsByTagNameNS(NS_DC, 'identifier')[0];
+      zip.file(opfDir + nh, DECL + '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n' +
+        '<head><meta name="dtb:uid" content="' + esc(ie ? ie.textContent.trim() : 'epub') + '"/></head>\n' +
+        '<docTitle><text>' + esc(te ? te.textContent.trim() : 'Untitled') + '</text></docTitle>\n<navMap>\n' +
+        toc.map((t, i) => '<navPoint id="navpoint-' + (i + 1) + '" playOrder="' + (i + 1) + '"><navLabel><text>' + esc(t.title) +
+          '</text></navLabel><content src="' + esc(r(t.href)) + '"/></navPoint>').join('\n') + '\n</navMap>\n</ncx>');
+      log('อัปเดต toc.ncx แล้ว');
+    }
+  }
+
+  // 7) pack (mimetype first, uncompressed; no folder entries)
   log('กำลังบีบอัดไฟล์ epub ใหม่...');
-  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
-  const url = URL.createObjectURL(blob);
-  const outName = file.name.replace(/\.epub$/i, '') + '-fixed.epub';
-  downloadArea.innerHTML = `<a class="dl" href="${url}" download="${outName}">ดาวน์โหลด ${outName}</a>`;
-  log('เสร็จแล้ว! กดปุ่มด้านล่างเพื่อดาวน์โหลด');
+  const out = new JSZip();
+  out.file('mimetype', 'application/epub+zip', {compression: 'STORE'});
+  for (const n of Object.keys(zip.files)) {
+    const e = zip.files[n];
+    if (e.dir || n === 'mimetype') continue;
+    out.file(n, await e.async('uint8array'), {createFolders: false});
+  }
+  const blob = await out.generateAsync({type: 'blob', mimeType: 'application/epub+zip', compression: 'DEFLATE'});
+  const name = file.name.replace(/\.epub$/i, '') + '-fixed.epub';
+  $('downloadArea').innerHTML = '<a class="dl" href="' + URL.createObjectURL(blob) + '" download="' + esc(name) + '">ดาวน์โหลด ' + esc(name) + '</a>';
+  log('เสร็จแล้ว! กดปุ่มเขียวเพื่อดาวน์โหลด');
 }
 </script>
-
 </body>
 </html>
